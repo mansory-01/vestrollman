@@ -16,6 +16,10 @@ export type { FlutterwaveConfig } from "./flutterwave.provider";
 
 import { MonnifyProvider } from "./monnify.provider";
 import { FlutterwaveProvider } from "./flutterwave.provider";
+import { db, organizations } from "@/server/db";
+import { eq } from "drizzle-orm";
+
+export type FiatProviderPreference = "monnify" | "flutterwave";
 
 /**
  * Create a MonnifyProvider from environment variables.
@@ -51,4 +55,30 @@ export function createFlutterwaveProvider(): FlutterwaveProvider {
   }
 
   return new FlutterwaveProvider({ secretKey, baseUrl });
+}
+
+/**
+ * Resolve a payment provider instance by organization/provider preference.
+ */
+export function createFiatProvider(
+  preference: FiatProviderPreference = "monnify",
+) {
+  if (preference === "flutterwave") {
+    return createFlutterwaveProvider();
+  }
+
+  return createMonnifyProvider();
+}
+
+/**
+ * Resolve a provider for a specific organization using its stored preference.
+ */
+export async function createOrganizationFiatProvider(organizationId: string) {
+  const [organization] = await db
+    .select({ providerPreference: organizations.providerPreference })
+    .from(organizations)
+    .where(eq(organizations.id, organizationId))
+    .limit(1);
+
+  return createFiatProvider(organization?.providerPreference ?? "monnify");
 }

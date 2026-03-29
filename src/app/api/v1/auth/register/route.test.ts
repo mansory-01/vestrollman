@@ -30,6 +30,8 @@ describe("POST /api/v1/auth/register", () => {
       firstName: "Test",
       lastName: "User",
       businessEmail: "test@example.com",
+      password: "Password123",
+      agreement: true,
     });
 
     const response = await POST(req);
@@ -46,6 +48,8 @@ describe("POST /api/v1/auth/register", () => {
       firstName: "Test",
       lastName: "User",
       businessEmail: "invalid-email",
+      password: "Password123",
+      agreement: true,
     });
 
     const response = await POST(req);
@@ -60,6 +64,8 @@ describe("POST /api/v1/auth/register", () => {
     const req = createMockRequest({
       firstName: "T",
       businessEmail: "test@example.com",
+      password: "Password123",
+      agreement: true,
     });
 
     const response = await POST(req);
@@ -79,6 +85,8 @@ describe("POST /api/v1/auth/register", () => {
       firstName: "Test",
       lastName: "User",
       businessEmail: "existing@example.com",
+      password: "Password123",
+      agreement: true,
     });
 
     const response = await POST(req);
@@ -96,6 +104,8 @@ describe("POST /api/v1/auth/register", () => {
       firstName: "Test",
       lastName: "User",
       businessEmail: "test@example.com",
+      password: "Password123",
+      agreement: true,
     });
 
     const response = await POST(req);

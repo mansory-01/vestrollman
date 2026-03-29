@@ -94,6 +94,10 @@ export const fiatTransactionStatusEnum = pgEnum("fiat_transaction_status", [
   "completed",
   "failed",
 ]);
+export const fiatProviderEnum = pgEnum("fiat_provider", [
+  "monnify",
+  "flutterwave",
+]);
 
 export const invitationRoleEnum = pgEnum("invitation_role", [
   "admin",
@@ -122,6 +126,9 @@ export const organizations = pgTable("organizations", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull(),
   slug: varchar("slug", { length: 255 }).notNull().unique(),
+  providerPreference: fiatProviderEnum("provider_preference")
+    .default("monnify")
+    .notNull(),
   industry: varchar("industry", { length: 255 }),
   registrationNumber: varchar("registration_number", { length: 255 }),
 

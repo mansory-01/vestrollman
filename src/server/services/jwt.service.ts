@@ -7,6 +7,17 @@ export interface JWTPayload extends jose.JWTPayload {
 }
 
 export class JWTService {
+  private static normalizeExpiration(expiration: string): string | number {
+    const msMatch = expiration.match(/^(\d+)ms$/);
+    if (!msMatch) {
+      return expiration;
+    }
+
+    const ms = Number(msMatch[1]);
+    // jose exp is second-based; use absolute timestamp for sub-second expirations.
+    return Math.floor((Date.now() + ms) / 1000);
+  }
+
   private static get ACCESS_SECRET() {
     return new TextEncoder().encode(process.env.JWT_ACCESS_SECRET || "");
   }
@@ -28,7 +39,7 @@ export class JWTService {
     return await new jose.SignJWT(payload)
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
-      .setExpirationTime(this.ACCESS_EXPIRATION)
+      .setExpirationTime(this.normalizeExpiration(this.ACCESS_EXPIRATION))
       .sign(this.ACCESS_SECRET);
   }
 
@@ -40,7 +51,7 @@ export class JWTService {
     return await new jose.SignJWT(payload)
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
-      .setExpirationTime(this.REFRESH_EXPIRATION)
+      .setExpirationTime(this.normalizeExpiration(this.REFRESH_EXPIRATION))
       .sign(this.REFRESH_SECRET);
   }
 

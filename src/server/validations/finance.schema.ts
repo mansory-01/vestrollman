@@ -42,4 +42,41 @@ export const ListTransactionsSchema = z
     "Query parameters for listing transactions with optional filtering by asset, status, and type, plus pagination controls.",
   );
 
+export const CreateDisbursementSchema = z.object({
+  amount: z.coerce
+    .number()
+    .int()
+    .positive()
+    .describe("Disbursement amount in kobo (smallest NGN unit)."),
+  destinationBankCode: z
+    .string()
+    .trim()
+    .min(1)
+    .max(20)
+    .describe("Destination bank code expected by the selected provider."),
+  destinationAccountNumber: z
+    .string()
+    .trim()
+    .min(8)
+    .max(20)
+    .describe("Destination bank account number."),
+  destinationAccountName: z
+    .string()
+    .trim()
+    .min(1)
+    .max(255)
+    .describe("Destination account holder name."),
+  narration: z
+    .string()
+    .trim()
+    .min(1)
+    .max(255)
+    .describe("Transaction narration shown by the provider and bank."),
+  currency: z
+    .literal("NGN")
+    .default("NGN")
+    .describe("Supported disbursement currency."),
+});
+
 export type ListTransactionsInput = z.infer<typeof ListTransactionsSchema>;
+export type CreateDisbursementInput = z.infer<typeof CreateDisbursementSchema>;

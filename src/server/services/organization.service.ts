@@ -5,6 +5,7 @@ import { NotFoundError } from "../utils/errors";
 export interface Organization {
   id: string;
   name: string;
+  providerPreference: "monnify" | "flutterwave";
   industry: string | null;
   registrationNumber: string | null;
   registeredStreet: string | null;

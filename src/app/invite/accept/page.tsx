@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, CheckCircle, XCircle, Mail, Building, User, Lock } from "lucide-react";
-import { acceptInvitationSchema } from "@/server/validations/invitation.schema";
 
 const acceptInvitationFormSchema = z.object({
   token: z.string().min(1, "Token is required"),
@@ -41,7 +40,20 @@ const roleLabels = {
   employee: "Employee",
 };
 
-export default function AcceptInvitationPage() {
+function InvitationPageFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <Card className="w-full max-w-md">
+        <CardContent className="p-6 text-center">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin mb-4" />
+          <p className="text-muted-foreground">Loading invitation details...</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function AcceptInvitationPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -158,16 +170,7 @@ export default function AcceptInvitationPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <Loader2 className="mx-auto h-8 w-8 animate-spin mb-4" />
-            <p className="text-muted-foreground">Loading invitation details...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <InvitationPageFallback />;
   }
 
   if (error && !invitationDetails) {
@@ -349,6 +352,14 @@ export default function AcceptInvitationPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function AcceptInvitationPage() {
+  return (
+    <Suspense fallback={<InvitationPageFallback />}>
+      <AcceptInvitationPageContent />
+    </Suspense>
   );
 }
 

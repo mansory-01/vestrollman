@@ -107,13 +107,16 @@ export function withKybRateLimit(
 ) {
   return async (req: NextRequest, ...args: unknown[]) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let identifier = req.headers.get("x-forwarded-for") || (req as any).ip;
-    
-    // Fallback if IP is not available
+    const forwardedFor = req?.headers?.get?.("x-forwarded-for");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const requestIp = (req as any)?.ip;
+    let identifier = forwardedFor || requestIp;
+
     if (!identifier) {
-      const token =
-        req.cookies.get("access_token")?.value ??
-        req.headers.get("authorization")?.replace("Bearer ", "");
+      const cookieToken = req?.cookies?.get?.("access_token")?.value;
+      const authHeader = req?.headers?.get?.("authorization");
+      const headerToken = authHeader?.replace("Bearer ", "");
+      const token = cookieToken ?? headerToken;
       identifier = token ? `token-${token.substring(0, 10)}` : "unknown-ip";
     }
 
@@ -121,7 +124,7 @@ export function withKybRateLimit(
     if (isLimited) {
       return ApiResponse.error("Too many requests", 429);
     }
-    
+
     return handler(req, ...args);
   };
 }

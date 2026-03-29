@@ -90,7 +90,19 @@ export function createTransactionalMockDb() {
 
       const builder = {
         values: vi.fn((row: Record<string, unknown>) => {
-          const persisted = { id: `mock-id-${Date.now()}`, ...row };
+          const defaults =
+            key === "emailVerifications"
+              ? {
+                  attempts: 0,
+                  verified: false,
+                  createdAt: new Date(),
+                }
+              : {};
+          const persisted = {
+            id: `mock-id-${Date.now()}`,
+            ...defaults,
+            ...row,
+          };
           store[key].push(persisted);
           return {
             returning: vi.fn().mockResolvedValue([persisted]),
@@ -125,7 +137,19 @@ export function createTransactionalMockDb() {
 
           return {
             values: vi.fn((row: Record<string, unknown>) => {
-              const persisted = { id: `mock-id-${Date.now()}`, ...row };
+              const defaults =
+                key === "emailVerifications"
+                  ? {
+                      attempts: 0,
+                      verified: false,
+                      createdAt: new Date(),
+                    }
+                  : {};
+              const persisted = {
+                id: `mock-id-${Date.now()}`,
+                ...defaults,
+                ...row,
+              };
               store[key].push(persisted);
               return {
                 returning: vi.fn().mockResolvedValue([persisted]),

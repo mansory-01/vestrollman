@@ -11,11 +11,7 @@ import { resetDatabase } from "../test/db-utils";
 const describeIfDb = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 const run = describeIfDb;
 
-if (!process.env.TEST_DATABASE_URL) {
-  throw new Error("TEST_DATABASE_URL must be set for this test");
-}
-
-if (!process.env.TEST_DATABASE_URL.includes("test")) {
+if (process.env.TEST_DATABASE_URL && !process.env.TEST_DATABASE_URL.includes("test")) {
   throw new Error("Refusing to run tests on non-test database");
 }
 

@@ -18,6 +18,7 @@ export class AppError extends Error {
   public type: string;
   /** RFC 7807 `title` – short, stable summary of the problem type. */
   public title: string;
+  public status: number;
 
   constructor(
     public message: string,
@@ -38,6 +39,7 @@ export class AppError extends Error {
       type: "about:blank",
       title: "Unknown Error",
     };
+    this.status = statusCode;
     this.type = typeOverride ?? defaults.type;
     this.title = titleOverride ?? defaults.title;
   }
