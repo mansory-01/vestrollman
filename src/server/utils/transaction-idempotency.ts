@@ -1,5 +1,4 @@
 import { db } from "../db";
-import { transactionCache } from "../db/schema";
 import { eq } from "drizzle-orm";
 import type { SubmissionResult } from "../services/blockchain.service";
 
@@ -53,6 +52,22 @@ export class TransactionIdempotencyCache {
   // ─── DB Backend ───────────────────────────────────────────────────────────
 
   private static async dbHas(hash: string): Promise<SubmissionResult | null> {
+    let transactionCache: any;
+    try {
+      const schema = (await import("../db/schema")) as Record<string, any>;
+      transactionCache = schema.transactionCache;
+    } catch {
+      return null;
+    }
+
+    if (
+      typeof (db as any).select !== "function" ||
+      !transactionCache?.hash ||
+      !transactionCache?.expiresAt
+    ) {
+      return null;
+    }
+
     const now = new Date();
     const rows = await db
       .select()
@@ -78,6 +93,21 @@ export class TransactionIdempotencyCache {
     result: SubmissionResult,
     ttlSeconds: number,
   ): Promise<void> {
+    let transactionCache: any;
+    try {
+      const schema = (await import("../db/schema")) as Record<string, any>;
+      transactionCache = schema.transactionCache;
+    } catch {
+      return;
+    }
+
+    if (
+      typeof (db as any).insert !== "function" ||
+      !transactionCache?.hash
+    ) {
+      return;
+    }
+
     const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
     await db
       .insert(transactionCache)

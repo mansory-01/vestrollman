@@ -10,7 +10,11 @@ vi.mock("../db", () => ({
   },
 }));
 vi.mock("../db/schema", () => ({
-  transactionCache: {},
+  transactionCache: {
+    hash: "hash",
+    resultJson: "resultJson",
+    expiresAt: "expiresAt",
+  },
 }));
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn(),

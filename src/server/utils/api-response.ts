@@ -58,12 +58,17 @@ export class ApiResponse {
     errors: Record<string, unknown> | null = null,
     req?: NextRequest,
     headers?: HeadersInit
-  ): NextResponse<ProblemDetails> {
+  ): NextResponse<ProblemDetails & { success: false; message: string }> {
     const instance = req?.nextUrl?.pathname ?? "unknown";
 
     const body = buildProblemDetails(status, detail, instance, errors);
+    const compatBody = {
+      ...body,
+      success: false as const,
+      message: detail,
+    };
 
-    return NextResponse.json(body, {
+    return NextResponse.json(compatBody, {
       status,
       headers: {
         "Content-Type": "application/problem+json",

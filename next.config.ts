@@ -3,6 +3,7 @@ import { join } from "path";
 
 const nextConfig: NextConfig = {
   compress: true,
+  serverExternalPackages: ["ioredis"],
   turbopack: {
     root: join(__dirname), // Set the root to the current directory dynamically
     rules: {

@@ -5,7 +5,9 @@ import { db } from "../db";
 import { organizationInvitations, users, organizations } from "../db/schema";
 import { eq } from "drizzle-orm";
 
-describe("InvitationService", () => {
+const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
+
+run("InvitationService", () => {
   let testOrganization: typeof organizations.$inferSelect;
   let testUser: typeof users.$inferSelect;
   let cleanup: (() => Promise<void>)[] = [];

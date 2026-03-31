@@ -72,6 +72,25 @@ export class TeamService {
   }
 
   static async getExpenses(organizationId: string) {
-    return [];
+    const result = await db.execute<{
+      id: string;
+      expenseName: string;
+      category: string;
+      amount: number;
+      status: string;
+      attachmentUrl: string | null;
+    }>(sql`
+      select
+        id,
+        name as "expenseName",
+        category,
+        amount,
+        status,
+        attachment_url as "attachmentUrl"
+      from expenses
+      where organization_id = ${organizationId}
+    `);
+
+    return result.rows;
   }
 }

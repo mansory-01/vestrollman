@@ -6,6 +6,7 @@ vi.mock("../db", () => ({
     db: {
         select: vi.fn(),
         insert: vi.fn(),
+        execute: vi.fn(),
     },
     users: {
         email: "email",
@@ -83,11 +84,7 @@ describe("TeamService", () => {
             }
         ];
 
-        const selectMock = {
-            from: vi.fn().mockReturnThis(),
-            where: vi.fn().mockResolvedValue(mockExpenses),
-        };
-        vi.mocked(db.select).mockReturnValue(selectMock as never);
+        vi.mocked(db.execute).mockResolvedValue({ rows: mockExpenses } as never);
 
         const expenses = await TeamService.getExpenses("org-123");
         expect(expenses).toEqual(mockExpenses);
