@@ -17,16 +17,21 @@ const steps = [
   { id: 6, title: "Review & Sign", content: <EmployeeDetails /> },
 ];
 
+/**
+ * Contracts multi-step form component.
+ * Manages the state and navigation for creating a new contract.
+ */
 function Contracts() {
   const [activeStep, setActiveStep] = useState(0);
-  const onSubmit = (data: any) => console.log(data);
 
   const handleNext = () => {
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
   };
+
   const handleBack = () => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
+
   return (
     <form
       onSubmit={(e) => e.preventDefault()}
@@ -61,6 +66,9 @@ interface Step {
   content: React.ReactNode;
 }
 
+/**
+ * Renders the content of the current step.
+ */
 function StepContent({
   steps,
   activeStep,
@@ -68,10 +76,13 @@ function StepContent({
   steps: Step[];
   activeStep: number;
 }) {
-  if (!steps[activeStep]) return;
+  if (!steps[activeStep]) return null;
   return <div className="py-10">{steps[activeStep].content}</div>;
 }
 
+/**
+ * Navigation controls for the multi-step form.
+ */
 function StepControls({
   steps,
   activeStep,
@@ -88,13 +99,13 @@ function StepControls({
       <button
         disabled={activeStep === 0}
         onClick={handleBack}
-        className="flex-1 text-purple-700 hover:text-white border border-purple-700 hover:bg-purple-800 focus:ring-4 focus:outline-none focus:ring-purple-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 dark:border-purple-400 dark:text-purple-400 dark:hover:text-white dark:hover:bg-purple-500 dark:focus:ring-purple-900"
+        className="flex-1 text-purple-700 hover:text-white border border-purple-700 hover:bg-purple-800 focus:ring-4 focus:outline-none focus:ring-purple-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 dark:border-purple-400 dark:text-purple-400 dark:hover:text-white dark:hover:bg-purple-500 dark:focus:ring-purple-900 duration-200"
       >
         Back
       </button>
       <button
         onClick={handleNext}
-        className="flex-1 focus:outline-none text-white bg-purple-700 hover:bg-purple-800 focus:ring-4 focus:ring-purple-300 font-medium rounded-lg text-sm px-5 py-2.5 mb-2 dark:bg-purple-600 dark:hover:bg-purple-700 dark:focus:ring-purple-900"
+        className="flex-1 focus:outline-none text-white bg-purple-700 hover:bg-purple-800 focus:ring-4 focus:ring-purple-300 font-medium rounded-lg text-sm px-5 py-2.5 mb-2 dark:bg-purple-600 dark:hover:bg-purple-700 dark:focus:ring-purple-900 duration-200"
       >
         {activeStep === steps.length - 1 ? "Finish" : "Next"}
       </button>

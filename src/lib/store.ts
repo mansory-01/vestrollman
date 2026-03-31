@@ -1,6 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
 import modalReducer from "./slice/modalSlice";
 
+/**
+ * Configures and returns the Redux store.
+ * 
+ * @returns The configured Redux store.
+ */
 export const Store = () => {
   return configureStore({
     reducer: {
@@ -9,9 +14,7 @@ export const Store = () => {
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({
         serializableCheck: {
-          ignoredPaths: [
-            "modal.modalProps",
-          ],
+          ignoredPaths: ["modal.modalProps"],
           ignoredActions: [
             "modal/openModal",
             "modal/closeModal",

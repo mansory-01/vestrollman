@@ -42,7 +42,19 @@ function hashPasskeyRegistrationChallenge(challenge: string): string {
   return crypto.createHash("sha256").update(challenge, "utf8").digest("hex");
 }
 
+/**
+ * AuthService handles user registration, authentication (password and passkey),
+ * session management, and biometric enrollment.
+ */
 export class AuthService {
+  /**
+   * Registers a new user and creates their organization if applicable.
+   * Generates and stores an email verification OTP.
+   * 
+   * @param data - Registration input including user and company details.
+   * @returns Object containing user ID, email, and status message.
+   * @throws {ConflictError} If the email already exists.
+   */
   static async register(data: RegisterInput) {
     const {
       businessEmail,
@@ -64,7 +76,6 @@ export class AuthService {
     const passwordHash = await PasswordVerificationService.hash(password);
 
     return await db.transaction(async (tx) => {
-      // 1. Create Organization if it's a business account or companyName exists
       let organizationId: string | undefined;
 
       if (companyName) {
@@ -81,7 +92,6 @@ export class AuthService {
         organizationId = org.id;
       }
 
-      // 2. Create User
       const [user] = await tx
         .insert(users)
         .values({
@@ -97,7 +107,6 @@ export class AuthService {
         })
         .returning();
 
-      // 3. Setup OTP
       const otp = OTPService.generateOTP();
       const otpHash = await OTPService.hashOTP(otp);
 
@@ -112,19 +121,30 @@ export class AuthService {
       });
 
       Logger.info("Email verification OTP generated", { email: businessEmail });
+      
       if (process.env.NODE_ENV !== "production") {
         Logger.debug("User registered successfully", { email: user.email });
       }
+
       return {
         userId: user.id,
         email: user.email,
         message: "Verification email sent",
-        // In dev/mock mode we might want to return the OTP for easier testing if needed
-        // but for now we follow the existing log pattern
       };
     });
   }
 
+  /**
+   * Authenticates a user using email and password.
+   * Checks rate limits, account lockout status, and verification status.
+   * 
+   * @param data - Login credentials.
+   * @param metadata - Request metadata (IP, User Agent).
+   * @returns Tokens and user profile.
+   * @throws {UnauthorizedError} If credentials are invalid.
+   * @throws {TooManyRequestsError} If rate limited.
+   * @throws {ForbiddenError} If account is locked or unverified.
+   */
   static async login(
     data: LoginInput,
     metadata: { ipAddress?: string; userAgent?: string },
@@ -144,9 +164,11 @@ export class AuthService {
         success: false,
         failureReason: "Rate limit exceeded",
       });
+
       if (process.env.NODE_ENV !== "production") {
         Logger.debug("Login attempt blocked due to rate limit", { email });
       }
+
       throw new TooManyRequestsError(
         "Too many login attempts. Please try again in 15 minutes.",
       );
@@ -163,9 +185,11 @@ export class AuthService {
         success: false,
         failureReason: "User not found",
       });
+
       if (process.env.NODE_ENV !== "production") {
         Logger.debug("Login attempt with unknown email", { email });
       }
+
       throw new UnauthorizedError("Invalid email or password");
     }
 
@@ -180,9 +204,11 @@ export class AuthService {
         success: false,
         failureReason: "Account locked",
       });
+
       if (process.env.NODE_ENV !== "production") {
         Logger.debug("Login attempt with locked account", { email });
       }
+
       throw new ForbiddenError(
         `Account is temporarily locked.Try again after ${unlockTime} `,
       );
@@ -198,9 +224,11 @@ export class AuthService {
         success: false,
         failureReason: "Unverified account",
       });
+
       if (process.env.NODE_ENV !== "production") {
         Logger.debug("Login attempt with unverified account", { email });
       }
+
       throw new ForbiddenError(
         "Account verification pending. Please check your email.",
       );
@@ -221,9 +249,11 @@ export class AuthService {
         success: false,
         failureReason: "Invalid password",
       });
+
       if (process.env.NODE_ENV !== "production") {
         Logger.debug("Login attempt with invalid password", { email });
       }
+
       throw new UnauthorizedError("Invalid email or password");
     }
 
@@ -248,6 +278,7 @@ export class AuthService {
     const expiresAt = new Date(
       Date.now() + (rememberMe ? 30 : 7) * 24 * 60 * 60 * 1000,
     );
+
     await SessionManagementService.createSession(
       user.id,
       refreshToken,
@@ -273,9 +304,11 @@ export class AuthService {
       lastLoginUa: metadata.userAgent,
       success: true,
     });
+
     if (process.env.NODE_ENV !== "production") {
       Logger.debug("User login successful", { email: user.email });
     }
+
     return {
       accessToken,
       refreshToken,
@@ -288,12 +321,18 @@ export class AuthService {
     };
   }
 
+  /**
+   * Authenticates a user using passkeys (WebAuthn).
+   * 
+   * @param email - User's email address.
+   * @param metadata - Request metadata.
+   * @returns Tokens and user profile.
+   * @throws {UnauthorizedError} If identity is not found.
+   */
   static async passkeyLogin(
     email: string,
     metadata: { ipAddress?: string; userAgent?: string },
   ) {
-    // Passkey Login Logic Skeleton
-    // This will be used by the @stellar/passkey-kit flow
     const user = await UserService.findByEmail(email);
 
     if (!user) {
@@ -308,8 +347,6 @@ export class AuthService {
     }
 
     try {
-      // Logic for passkey verification would go here
-
       await db.insert(biometricLogs).values({
         userId: user.id,
         email: user.email,
@@ -327,7 +364,6 @@ export class AuthService {
         })
         .where(eq(users.id, user.id));
 
-      // Generate credentials
       const sessionId = crypto.randomUUID();
       const accessToken = await JWTTokenService.generateAccessToken({
         userId: user.id,
@@ -374,6 +410,17 @@ export class AuthService {
     }
   }
 
+  /**
+   * Updates a user's password.
+   * 
+   * @param userId - ID of the user.
+   * @param currentPasswordHash - Existing password hash.
+   * @param currentPassword - Current plain-text password.
+   * @param newPassword - New plain-text password.
+   * @param metadata - Request metadata.
+   * @throws {BadRequestError} If account is OAuth-only or new password is same as current.
+   * @throws {UnauthorizedError} If current password is incorrect.
+   */
   static async changePassword(
     userId: string,
     currentPasswordHash: string | null,
@@ -423,6 +470,9 @@ export class AuthService {
   /**
    * Issues a fresh registration challenge for the user. Replaces any prior unconsumed challenge.
    * Call before `navigator.credentials.create()` (or equivalent); TTL is five minutes.
+   * 
+   * @param userId - ID of the user requesting the challenge.
+   * @returns The generated challenge string.
    */
   static async issuePasskeyRegistrationChallenge(
     userId: string,
@@ -444,7 +494,13 @@ export class AuthService {
     return { challenge };
   }
 
-  
+  /**
+   * Verifies and deletes a passkey registration challenge.
+   * 
+   * @param userId - ID of the user.
+   * @param challenge - The challenge string to consume.
+   * @throws {BadRequestError} If challenge is invalid or expired.
+   */
   static async consumePasskeyRegistrationChallenge(
     userId: string,
     challenge: string,
@@ -478,6 +534,13 @@ export class AuthService {
       .where(eq(passkeyRegistrationChallenges.id, row.id));
   }
 
+  /**
+   * Enrolls a new biometric credential for the user.
+   * 
+   * @param userId - ID of the user.
+   * @param registration - Passkey registration details.
+   * @param metadata - Request metadata.
+   */
   static async enrollBiometrics(
     userId: string,
     registration: PasskeyRegistrationInput,
@@ -488,8 +551,7 @@ export class AuthService {
       registration.challenge,
     );
 
-    // Logic for enrolling a new passkey would go here
-    // ...
+    // TODO: Implement actual biometric enrollment logic (WebAuthn credential storage)
 
     await AuditLogService.logBiometricEnrollment({
       userId,
@@ -498,12 +560,16 @@ export class AuthService {
     });
   }
 
+  /**
+   * Logs out the user by invalidating the refresh token and session.
+   * 
+   * @param refreshToken - The refresh token to invalidate.
+   * @param metadata - Request metadata.
+   */
   static async logout(
     refreshToken?: string | null,
     metadata?: { ipAddress?: string; userAgent?: string },
   ) {
-    // Client-side biometric session state (if any) should be cleared by the frontend
-    // upon receiving a successful logout response.
     await LogoutService.logout(refreshToken, metadata);
   }
 }

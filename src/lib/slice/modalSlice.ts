@@ -20,7 +20,7 @@ export interface ModalProps {
   size?: "sm" | "md" | "lg" | "xl" | "2xl" | "full";
   fullScreen?: boolean;
 
-  // New properties for dynamic modals
+   // Modal behavior and display options
   showButtons?: boolean;
   buttons?: ModalButton[];
   showCloseButton?: boolean;

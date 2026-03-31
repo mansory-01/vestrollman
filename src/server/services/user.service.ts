@@ -14,9 +14,14 @@ const ALLOWED_AVATAR_DOMAINS = [
   "storage.googleapis.com",
 ];
 
-// Validate avatar URL domain against whitelist
+/**
+ * Validates that an avatar URL points to an allowed domain.
+ * 
+ * @param avatarUrl - The URL to validate.
+ * @throws {Error} If the URL is invalid or the domain is not whitelisted.
+ */
 function validateAvatarUrl(avatarUrl: string | null | undefined): void {
-  if (!avatarUrl) return; // Allow null/undefined values
+  if (!avatarUrl) return;
 
   try {
     const url = new URL(avatarUrl);
@@ -39,7 +44,13 @@ function validateAvatarUrl(avatarUrl: string | null | undefined): void {
   }
 }
 
+/**
+ * UserService handles user-related database operations and profile management.
+ */
 export class UserService {
+  /**
+   * Finds a user by their email address.
+   */
   static async findByEmail(email: string) {
     const normalizedEmail = email.toLowerCase().trim();
 
@@ -52,6 +63,9 @@ export class UserService {
     return user || null;
   }
 
+  /**
+   * Creates a new user record.
+   */
   static async create(
     data: {
       firstName: string;
@@ -62,8 +76,6 @@ export class UserService {
     tx?: PgTransaction<any, any, any>,
   ) {
     const normalizedEmail = data.email.toLowerCase().trim();
-
-    // Use provided transaction context or create a new transaction
     const executor = tx || db;
 
     const [user] = await executor
@@ -79,6 +91,9 @@ export class UserService {
     return user;
   }
 
+  /**
+   * Finds a user by their unique ID.
+   */
   static async findById(id: string) {
     const [user] = await db
       .select()
@@ -89,19 +104,17 @@ export class UserService {
     return user || null;
   }
 
+  /**
+   * Updates an existing user's profile and logs security-sensitive changes.
+   */
   static async update(
     userId: string,
     data: Partial<typeof users.$inferInsert>,
     metadata?: { ipAddress?: string; userAgent?: string },
   ) {
-    if (data.avatarUrl !== undefined) {
-      validateAvatarUrl(data.avatarUrl);
-    }
-
     const oldUser = await this.findById(userId);
     if (!oldUser) return null;
 
-    // Validate avatar URL if provided
     if (data.avatarUrl !== undefined && data.avatarUrl !== null) {
       validateAvatarUrl(data.avatarUrl);
     }

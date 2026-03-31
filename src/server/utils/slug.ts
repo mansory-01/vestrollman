@@ -1,36 +1,25 @@
 /**
- * Generate a URL-safe slug from an organization name
+ * Generates a URL-safe slug from an organization name with a random suffix for uniqueness.
  * 
- * @param name - The organization name to convert to a slug
- * @returns A unique, URL-safe slug with a random suffix
- * 
- * @example
- * generateSlug("Acme Corporation") // "acme-corporation-a1b2c3"
- * generateSlug("Test & Co.") // "test-co-d4e5f6"
+ * @param name - The organization name to convert to a slug.
+ * @returns A unique, URL-safe slug (e.g., "acme-corporation-a1b2c3").
  */
 export function generateSlug(name: string): string {
-  // Convert to lowercase and remove leading/trailing whitespace
-  let slug = name.toLowerCase().trim();
+  const slug = name.toLowerCase().trim()
+    .replace(/[^\w\s-]/g, '') 
+    .replace(/[\s_]+/g, '-')   
+    .replace(/-+/g, '-')        
+    .replace(/^-+|-+$/g, '');   
 
-  // Replace special characters and spaces with hyphens
-  slug = slug
-    .replace(/[^\w\s-]/g, '') // Remove special characters except word chars, spaces, and hyphens
-    .replace(/[\s_]+/g, '-')   // Replace spaces and underscores with hyphens
-    .replace(/-+/g, '-')        // Replace multiple hyphens with single hyphen
-    .replace(/^-+|-+$/g, '');   // Remove leading/trailing hyphens
-
-  // Generate a random 6-character suffix for uniqueness
   const randomSuffix = generateRandomSuffix(6);
-
-  // Combine slug with random suffix
   return `${slug}-${randomSuffix}`;
 }
 
 /**
- * Generate a random alphanumeric suffix
+ * Generates a random alphanumeric suffix of a specified length.
  * 
- * @param length - Length of the random suffix
- * @returns A random alphanumeric string
+ * @param length - Length of the random suffix.
+ * @returns A random alphanumeric string.
  */
 function generateRandomSuffix(length: number): string {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';

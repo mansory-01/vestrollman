@@ -1,18 +1,24 @@
-
-
 export interface EmailOptions {
   to: string;
   subject: string;
   html: string;
 }
 
+/**
+ * EmailService handles the generation and sending of transactional emails.
+ * It provides templates for security alerts, password resets, and invitations.
+ */
 export class EmailService {
   private static readonly FROM_EMAIL = process.env.EMAIL_FROM || "noreply@vestroll.com";
   private static readonly APP_NAME = "VestRoll";
 
+  /**
+   * Sends a raw email using the configured external provider.
+   * 
+   * @param options - Recipient, subject, and HTML content.
+   */
   static async send(options: EmailOptions): Promise<void> {
-    // Email sending is mocked/implemented via external service
-    // Structured logging handled through Logger service
+    // Implementation placeholder for external email provider (e.g., SendGrid, AWS SES)
   }
 
   private static getBaseTemplate(content: string): string {
