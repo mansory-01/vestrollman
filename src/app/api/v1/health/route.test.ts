@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "./route";
+import { NextRequest } from "next/server";
 
 const { mockBlockchainService, mockLogger, pingDbMock } = vi.hoisted(() => ({
   mockBlockchainService: {
@@ -39,6 +40,12 @@ describe("GET /api/v1/health", () => {
     pingDbMock.mockResolvedValue(true);
   });
 
+  const createMockRequest = (): NextRequest => {
+    return {
+      headers: new Headers(),
+    } as unknown as NextRequest;
+  };
+
   it("should return healthy status with ledger age", async () => {
     pingDbMock.mockResolvedValue(true);
     mockBlockchainService.isHealthy.mockResolvedValue(true);
@@ -47,7 +54,7 @@ describe("GET /api/v1/health", () => {
       ledgerAgeSeconds: 12,
     });
 
-    const response = await GET();
+    const response = await GET(createMockRequest());
 
     expect(response.status).toBe(200);
     const data = await response.json();
@@ -66,7 +73,7 @@ describe("GET /api/v1/health", () => {
       ledgerAgeSeconds: 61,
     });
 
-    const response = await GET();
+    const response = await GET(createMockRequest());
 
     expect(response.status).toBe(200);
     const data = await response.json();
@@ -83,7 +90,7 @@ describe("GET /api/v1/health", () => {
       ledgerAgeSeconds: 12,
     });
 
-    const response = await GET();
+    const response = await GET(createMockRequest());
 
     expect(response.status).toBe(503);
     const data = await response.json();
@@ -98,7 +105,7 @@ describe("GET /api/v1/health", () => {
       new Error("Horizon unavailable"),
     );
 
-    const response = await GET();
+    const response = await GET(createMockRequest());
 
     expect(response.status).toBe(503);
     const data = await response.json();

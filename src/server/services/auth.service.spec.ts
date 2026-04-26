@@ -29,7 +29,7 @@ vi.mock("./logger.service", () => ({
 // Stub the email service so no real SMTP calls are made during tests.
 vi.mock("./email.service", () => ({
   EmailService: {
-    sendVerificationEmail: vi.fn().mockResolvedValue(undefined),
+    sendVerificationOTPEmail: vi.fn().mockResolvedValue(undefined),
   },
 }));
 

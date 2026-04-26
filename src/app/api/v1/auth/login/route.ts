@@ -44,6 +44,20 @@ export const POST = withHandler(
       userAgent: metadata.userAgent,
     });
 
-    return ApiResponse.success(result, result.message);
+    const response = ApiResponse.success(result, result.message);
+
+    // Set refresh token cookie if provided (e.g., during OTP-based login or social auth)
+    if (result.refreshToken) {
+      const isProd = process.env.NODE_ENV === "production";
+      response.cookies.set("refreshToken", result.refreshToken, {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+      });
+    }
+
+    return response;
   }
 );

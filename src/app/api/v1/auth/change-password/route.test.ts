@@ -33,20 +33,21 @@ describe("POST /api/v1/auth/change-password", () => {
     },
   };
 
-  it("should change password successfully", async () => {
-    vi.mocked(AuthUtils.authenticateRequest).mockResolvedValue(
-      mockAuthUser as any,
-    );
-    vi.mocked(AuthService.changePassword).mockResolvedValue(undefined);
+   it("should change password successfully", async () => {
+     vi.mocked(AuthUtils.authenticateRequest).mockResolvedValue(
+       mockAuthUser as any,
+     );
+     vi.mocked(AuthService.changePassword).mockResolvedValue(undefined);
 
-    const req = createMockRequest({
-      currentPassword: "OldPassword123",
-      newPassword: "NewPassword456",
-    });
+      const req = createMockRequest({
+        currentPassword: "OldPassword123",
+        newPassword: "NewPassword456",
+        confirmPassword: "NewPassword456",
+      });
 
-    const response = await POST(req);
+     const response = await POST(req);
 
-    expect(response.status).toBe(200);
+     expect(response.status).toBe(200);
     const data = await response.json();
     expect(data.success).toBe(true);
     expect(data.message).toBe("Password changed successfully");
@@ -75,45 +76,47 @@ describe("POST /api/v1/auth/change-password", () => {
     expect(data.success).toBe(false);
   });
 
-  it("should return 401 for incorrect current password", async () => {
-    vi.mocked(AuthUtils.authenticateRequest).mockResolvedValue(
-      mockAuthUser as any,
-    );
-    vi.mocked(AuthService.changePassword).mockRejectedValue(
-      new UnauthorizedError("Current password is incorrect"),
-    );
+   it("should return 401 for incorrect current password", async () => {
+     vi.mocked(AuthUtils.authenticateRequest).mockResolvedValue(
+       mockAuthUser as any,
+     );
+     vi.mocked(AuthService.changePassword).mockRejectedValue(
+       new UnauthorizedError("Current password is incorrect"),
+     );
 
-    const req = createMockRequest({
-      currentPassword: "WrongPassword",
-      newPassword: "NewPassword456",
-    });
+      const req = createMockRequest({
+        currentPassword: "WrongPassword",
+        newPassword: "NewPassword456",
+        confirmPassword: "NewPassword456",
+      });
 
-    const response = await POST(req);
+     const response = await POST(req);
 
-    expect(response.status).toBe(401);
+     expect(response.status).toBe(401);
     const data = await response.json();
     expect(data.success).toBe(false);
     expect(data.message).toBe("Current password is incorrect");
   });
 
-  it("should return 400 for OAuth-only account with no password", async () => {
-    vi.mocked(AuthUtils.authenticateRequest).mockResolvedValue(
-      mockAuthUser as any,
-    );
-    vi.mocked(AuthService.changePassword).mockRejectedValue(
-      new BadRequestError(
-        "No password set for this account. Password change is not available for OAuth-only accounts.",
-      ),
-    );
+   it("should return 400 for OAuth-only account with no password", async () => {
+     vi.mocked(AuthUtils.authenticateRequest).mockResolvedValue(
+       mockAuthUser as any,
+     );
+     vi.mocked(AuthService.changePassword).mockRejectedValue(
+       new BadRequestError(
+         "No password set for this account. Password change is not available for OAuth-only accounts.",
+       ),
+     );
 
-    const req = createMockRequest({
-      currentPassword: "anything",
-      newPassword: "NewPassword456",
-    });
+      const req = createMockRequest({
+        currentPassword: "anything",
+        newPassword: "NewPassword456",
+        confirmPassword: "NewPassword456",
+      });
 
-    const response = await POST(req);
+     const response = await POST(req);
 
-    expect(response.status).toBe(400);
+     expect(response.status).toBe(400);
     const data = await response.json();
     expect(data.success).toBe(false);
     expect(data.message).toContain("No password set for this account");
@@ -129,10 +132,11 @@ describe("POST /api/v1/auth/change-password", () => {
       ),
     );
 
-    const req = createMockRequest({
-      currentPassword: "SamePassword123",
-      newPassword: "SamePassword123",
-    });
+      const req = createMockRequest({
+        currentPassword: "SamePassword123",
+        newPassword: "SamePassword123",
+        confirmPassword: "SamePassword123",
+      });
 
     const response = await POST(req);
 

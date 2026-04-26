@@ -130,11 +130,16 @@ export class TwoFactorService {
 
   static generateBackupCodes(): string[] {
     const codes: string[] = [];
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
     for (let i = 0; i < SECURITY_CONFIG.backupCodeCount; i++) {
-      // Generate an 8-digit numeric code
-      const code = Math.floor(10000000 + Math.random() * 90000000).toString();
-      codes.push(code);
+      // Generate a 12-character alphanumeric string and format as XXXX-XXXX-XXXX
+      let code = "";
+      for (let j = 0; j < 12; j++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      const formatted = `${code.slice(0, 4)}-${code.slice(4, 8)}-${code.slice(8, 12)}`;
+      codes.push(formatted);
     }
 
     return codes;

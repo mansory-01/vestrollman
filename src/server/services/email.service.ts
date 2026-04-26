@@ -15,6 +15,7 @@ export class EmailService {
   static async send(options: EmailOptions): Promise<void> {
     const apiKey = process.env.BREVO_API_KEY;
     if (!apiKey) {
+      // eslint-disable-next-line no-console
       console.error("BREVO_API_KEY is not defined. Email will not be sent.");
       return;
     }
@@ -44,9 +45,11 @@ export class EmailService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        // eslint-disable-next-line no-console
         console.error("Failed to send email via Brevo", response.status, errorData);
       }
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Exception while sending email via Brevo", error);
     }
   }

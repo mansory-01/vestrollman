@@ -34,7 +34,9 @@ export class EmailVerificationService {
           eq(emailVerifications.userId, userId),
           gt(emailVerifications.createdAt, oneHourAgo),
         ),
-      );
+      )
+      .orderBy(desc(emailVerifications.createdAt))
+      .limit(1);
 
     const totalFailed = Number(result?.totalAttempts || 0);
 

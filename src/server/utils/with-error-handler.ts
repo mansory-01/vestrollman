@@ -82,40 +82,44 @@ export function withHandler<T = any>(
       });
 
       return response;
-    } catch (error) {
-      const instance = req?.nextUrl?.pathname ?? "unknown";
-      const method = req?.method ?? "UNKNOWN";
-      const responseId = crypto.randomUUID();
+     } catch (error) {
+       const instance = req?.nextUrl?.pathname ?? "unknown";
+       const method = req?.method ?? "UNKNOWN";
+       const responseId = crypto.randomUUID();
 
-      if (error instanceof AppError) {
-        Logger.error(`[App Error] ${method} ${instance}`, {
-          responseId,
-          type: error.name,
-          message: error.message,
-          errors: error.errors,
-        });
-        const problem = error.toProblemDetails(instance);
-        const response = ApiResponse.problemDetails(problem) as NextResponse;
-        response.headers.set("X-Response-Id", responseId);
-        return response;
-      }
+       if (error instanceof AppError) {
+         Logger.error(`[App Error] ${method} ${instance}`, {
+           responseId,
+           type: error.name,
+           message: error.message,
+           errors: error.errors,
+         });
+         const response = ApiResponse.error(
+           error.message,
+           error.status,
+           error.errors,
+           req,
+         ) as NextResponse;
+         response.headers.set("X-Response-Id", responseId);
+         return response;
+       }
 
-      Logger.error(`[Unhandled Error] ${method} ${instance}`, {
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-        responseId,
-      });
+       Logger.error(`[Unhandled Error] ${method} ${instance}`, {
+         message: error instanceof Error ? error.message : String(error),
+         stack: error instanceof Error ? error.stack : undefined,
+         responseId,
+       });
 
-      const response = ApiResponse.error(
-        "An unexpected error occurred. Please try again later.",
-        500,
-        null,
-        req,
-      ) as NextResponse;
+       const response = ApiResponse.error(
+         "Internal server error",
+         500,
+         null,
+         req,
+       ) as NextResponse;
 
-      response.headers.set("X-Response-Id", responseId);
-      return response;
-    }
+       response.headers.set("X-Response-Id", responseId);
+       return response;
+     }
   };
 }
 
