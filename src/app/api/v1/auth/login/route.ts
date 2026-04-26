@@ -44,18 +44,6 @@ export const POST = withHandler(
       userAgent: metadata.userAgent,
     });
 
-    const response = ApiResponse.success(result, "Login successful");
-
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict" as const,
-      path: "/",
-      maxAge: body.rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60,
-    };
-
-    response.cookies.set("refreshToken", result.refreshToken, cookieOptions);
-
-    return response;
+    return ApiResponse.success(result, result.message);
   }
 );
