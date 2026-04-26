@@ -32,6 +32,7 @@ import { LoginInput } from "../validations/login.schema";
 import { RegisterInput, PasskeyRegistrationInput } from "../validations/auth.schema";
 import { Logger } from "./logger.service";
 import { EmailService } from "./email.service";
+import { LoginOTPService } from "./login-otp.service";
 
 /** Max age for a passkey registration challenge (WebAuthn-style short TTL). */
 const PASSKEY_REGISTRATION_CHALLENGE_TTL_MS = 5 * 60 * 1000;
@@ -260,43 +261,6 @@ export class AuthService {
 
     await AccountLockoutService.resetFailures(user.id);
 
-    const sessionId = crypto.randomUUID();
-
-    const accessToken = await JWTTokenService.generateAccessToken({
-      userId: user.id,
-      email: user.email,
-    });
-
-    const refreshToken = await JWTTokenService.generateRefreshToken(
-      {
-        userId: user.id,
-        email: user.email,
-        sessionId,
-      },
-      rememberMe,
-    );
-
-    const expiresAt = new Date(
-      Date.now() + (rememberMe ? 30 : 7) * 24 * 60 * 60 * 1000,
-    );
-
-    await SessionManagementService.createSession(
-      user.id,
-      refreshToken,
-      metadata.userAgent,
-      expiresAt,
-      sessionId,
-    );
-
-    await db
-      .update(users)
-      .set({
-        lastLoginAt: new Date(),
-        lastLoginIp: metadata.ipAddress,
-        lastLoginUa: metadata.userAgent,
-      })
-      .where(eq(users.id, user.id));
-
     await LoginAttemptService.logAttempt({
       email,
       ipAddress: metadata.ipAddress,
@@ -306,19 +270,14 @@ export class AuthService {
       success: true,
     });
 
-    if (process.env.NODE_ENV !== "production") {
-      Logger.debug("User login successful", { email: user.email });
-    }
+    // Send login OTP via Brevo instead of issuing tokens immediately
+    await LoginOTPService.sendLoginOTP(user.id, user.email, user.firstName);
+
+    Logger.info("Login OTP sent", { email: user.email });
 
     return {
-      accessToken,
-      refreshToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-      },
+      email: user.email,
+      message: "A verification code has been sent to your email.",
     };
   }
 

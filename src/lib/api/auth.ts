@@ -38,6 +38,14 @@ export class AuthService {
     return apiClient.post("/api/v1/auth/login", credentials);
   }
 
+  static async verifyLoginOTP(data: { email: string; otp: string; rememberMe?: boolean }) {
+    return apiClient.post("/api/v1/auth/verify-login-otp", data);
+  }
+
+  static async resendLoginOTP(email: string) {
+    return apiClient.post("/api/v1/auth/resend-otp", { email });
+  }
+
   static async register(credentials: RegisterData) {
     return apiClient.post("/api/v1/auth/register", credentials);
   }

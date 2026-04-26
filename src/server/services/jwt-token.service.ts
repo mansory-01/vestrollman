@@ -20,7 +20,7 @@ export class JWTTokenService {
     if (!key) {
       return new TextEncoder().encode(process.env.JWT_SECRET || "vestroll-fallback-secret");
     }
-    return jose.importPKCS8(key, "RS256");
+    return jose.importPKCS8(key.replace(/\\n/g, "\n"), "RS256");
   }
 
   /**
@@ -32,7 +32,7 @@ export class JWTTokenService {
     if (!key) {
       return new TextEncoder().encode(process.env.JWT_SECRET || "vestroll-fallback-secret");
     }
-    return jose.importSPKI(key, "RS256");
+    return jose.importSPKI(key.replace(/\\n/g, "\n"), "RS256");
   }
 
   /**
