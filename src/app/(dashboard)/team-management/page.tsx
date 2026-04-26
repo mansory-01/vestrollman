@@ -13,12 +13,78 @@ import TeamMgtEmployees from "@/components/features/team-management/employees";
 import { generateMockEmployees } from "@/components/features/team-management/utils";
 import { ExportDropdown } from "@/components/features/team-management/ExportDropDown";
 import { CreateFirstContact } from "@/components/features/team-management/CreateFirstContact";
+import { InvitationManagement } from "@/components/features/team-management/invitations";
+import { TeamService } from "@/lib/api/team";
+import { useToast } from "@/hooks/useToast";
+import { useEffect } from "react";
+import { ToastContainer } from "@/components/ui/toast";
 
 const TeamManagementDashboard = () => {
   const [activeTab, setActiveTab] = useState("Employees");
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [invitations, setInvitations] = useState([]);
+  const [isInviting, setIsInviting] = useState(false);
+  const [invitationError, setInvitationError] = useState<string | null>(null);
+  const { toasts, removeToast, success, error: toastError } = useToast();
 
   const allEmployees = generateMockEmployees();
+
+  const fetchInvitations = async () => {
+    setIsInviting(true);
+    try {
+      const response: any = await TeamService.listInvitations();
+      // Handle both { data: [...] } and directly [...]
+      const data = response.data || response;
+      setInvitations(Array.isArray(data) ? data : (data.data || []));
+    } catch (err: any) {
+      console.error("Failed to fetch invitations:", err);
+      toastError("Failed to load invitations");
+    } finally {
+      setIsInviting(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "Invitations") {
+      fetchInvitations();
+    }
+  }, [activeTab]);
+
+  const handleCreateInvitation = async (data: any) => {
+    setIsInviting(true);
+    setInvitationError(null);
+    try {
+      await TeamService.createInvitation(data);
+      success("Invitation sent successfully");
+      fetchInvitations();
+    } catch (err: any) {
+      const message = err.response?.data?.message || "Failed to send invitation";
+      setInvitationError(message);
+      toastError(message);
+    } finally {
+      setIsInviting(false);
+    }
+  };
+
+  const handleResendInvitation = async (invitationId: string) => {
+    try {
+      await TeamService.resendInvitation({ invitationId });
+      success("Invitation resent successfully");
+      fetchInvitations();
+    } catch (err: any) {
+      toastError(err.response?.data?.message || "Failed to resend invitation");
+    }
+  };
+
+  const handleDeleteInvitation = async (invitationId: string) => {
+    try {
+      await TeamService.deleteInvitation(invitationId);
+      success("Invitation deleted successfully");
+      fetchInvitations();
+    } catch (err: any) {
+      toastError(err.response?.data?.message || "Failed to delete invitation");
+    }
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -32,6 +98,18 @@ const TeamManagementDashboard = () => {
         return <TeamMgtTimeSheet />;
       case "Expense":
         return <TeamMgtExpense />;
+      case "Invitations":
+        return (
+          <InvitationManagement
+            invitations={invitations}
+            isLoading={isInviting}
+            onCreateInvitation={handleCreateInvitation}
+            onResendInvitation={handleResendInvitation}
+            onDeleteInvitation={handleDeleteInvitation}
+            onRefresh={fetchInvitations}
+            error={invitationError}
+          />
+        );
       default:
         return null;
     }
@@ -104,6 +182,7 @@ const TeamManagementDashboard = () => {
           scrollbar-width: none;
         }
       `}</style>
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   );
 };

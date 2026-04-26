@@ -13,6 +13,7 @@ export const NavigationTabs = ({
     "Milestone",
     "Time off",
     "Expense",
+    "Invitations",
   ];
 
   return (
