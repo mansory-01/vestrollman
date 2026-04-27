@@ -227,10 +227,16 @@ function ContractHistory() {
             </motion.div>
           ))}
         </motion.section>
+      ) : searchInput || filters.contractType !== "All" || filters.status !== "All" ? (
+        <EmptyState
+          title="No contracts found"
+          description={`No contracts match your current search or filters. Try adjusting them.`}
+        />
       ) : (
         <EmptyState
-          title="No transactions yet"
-          description="Your transactions will be displayed here"
+          title="You don't have any contracts yet"
+          description="Contracts you create or receive will appear here."
+          action={{ label: "New contract", href: "/contracts/create" }}
         />
       )}
     </div>

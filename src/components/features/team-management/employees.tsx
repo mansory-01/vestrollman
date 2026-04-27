@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import Image from "next/image";
 import { SearchFilterBar } from "@/components/features/team-management/SearchFilterBar";
+import EmptyState from "@/components/ui/EmptyState";
 import { TeamEmptyState } from "@/components/features/team-management/TeamEmptyState";
 import { Pagination } from "@/components/features/team-management/Pagination";
 import { FilterModal } from "@/components/features/team-management/FilterModal";
@@ -126,21 +126,11 @@ const TeamMgtEmployees: React.FC<TeamMgtEmployeesProps> = ({ employees }) => {
 
       {/* Show "no results" if search/filter returns empty */}
       {totalItems === 0 ? (
-        <div className="bg-white rounded-lg border border-gray-200 min-h-96">
-          <div className="flex flex-col items-center justify-center py-20 px-4">
-            <Image
-              src="/search-paper.svg"
-              alt="No records"
-              width={200}
-              height={200}
-            />
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">
-              No employees found
-            </h3>
-            <p className="text-gray-500 text-center max-w-sm">
-              Try adjusting your search or filter criteria
-            </p>
-          </div>
+        <div className="bg-white rounded-lg border border-gray-200 min-h-96 flex items-center justify-center">
+          <EmptyState
+            title="No employees found"
+            description="Try adjusting your search or filter criteria"
+          />
         </div>
       ) : (
         <div>
