@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, ChevronDown, Search } from "lucide-react";
+import { useToast } from "@/hooks/useToast";
 
 interface BillingAddressFormData {
   addressLine1: string;
@@ -210,6 +211,7 @@ const StateDropdown: React.FC<StateDropdownProps> = ({
 };
 
 const BillingAddressForm: React.FC = () => {
+  const { success } = useToast();
   const [formData, setFormData] = useState<BillingAddressFormData>({
     addressLine1: "",
     addressLine2: "",
@@ -393,7 +395,7 @@ const BillingAddressForm: React.FC = () => {
     // Simulate API call
     setTimeout(() => {
       console.log("Billing address submitted:", formData);
-      alert("Billing address saved successfully!");
+      success("Billing address saved successfully!");
       setIsSubmitting(false);
     }, 2000);
   };

@@ -43,6 +43,7 @@ yarn-error.log*
 next-env.d.ts
 
 # package manager lock files (unignore the one we use)
+package-lock.json
 !pnpm-lock.yaml
 *.claude
 *CLAUDE.md

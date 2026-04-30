@@ -13,9 +13,9 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { TimeOffFormData, Employee } from "@/types/teamManagement.types";
 import { SelectEmployeeModal } from "./SelectEmployeeModal";
+import { useToast } from "@/hooks/useToast";
 
 const EmployeeSelector = ({
   selectedEmployee,
@@ -314,7 +314,7 @@ const DurationDisplay = ({ days }: { days: number }) => (
 );
 
 export const CreateTimeOffForm = ({ employees }: { employees: Employee[] }) => {
-  const router = useRouter();
+  const { success } = useToast();
   const [formData, setFormData] = useState<TimeOffFormData>({
     employee: null,
     timeOffType: "paid",
@@ -415,6 +415,7 @@ export const CreateTimeOffForm = ({ employees }: { employees: Employee[] }) => {
 
       setSubmitStatus("success");
       setSubmitMessage("Your time-off request has been submitted and is pending approval.");
+      success("Time off request created successfully!");
 
       // Reset form
       setFormData({
