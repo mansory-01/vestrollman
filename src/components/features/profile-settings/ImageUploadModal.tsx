@@ -14,7 +14,7 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   currentImage,
   shape = "circle",
 }) => {
-  const { error } = useToast();
+  const { error: showError } = useToast();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -31,13 +31,13 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
 
   const handleFileSelect = useCallback((file: File) => {
     if (!file.type.startsWith("image/")) {
-      error("Please select a valid image file");
+      showError("Please select a valid image file");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
       // 5MB limit
-      error("File size must be less than 5MB");
+      showError("File size must be less than 5MB");
       return;
     }
 
@@ -162,7 +162,7 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
       handleCancel();
     } catch (err) {
       console.error("Failed to save image:", err);
-      error("Failed to save image. Please try again.");
+      showError("Failed to save image. Please try again.");
     } finally {
       setIsLoading(false);
     }
