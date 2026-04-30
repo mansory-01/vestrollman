@@ -3,12 +3,17 @@
 import { CircleDollarSign, ListFilterIcon, SearchIcon } from "lucide-react";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Contract, mockContracts } from "@/lib/data/contracts";
+import { Contract } from "@/lib/data/contracts";
 import Image from "next/image";
 import EmptyState from "@/components/ui/EmptyState";
 import { cn } from "@/utils/classNames";
 import FilterModal, { FilterSelection } from "./ui/FilterModal";
 import Link from "next/link";
+
+interface ContractHistoryProps {
+  contracts: Contract[];
+  loading?: boolean;
+}
 
 const getStatusClass = (status: Contract["status"]) => {
   switch (status) {
@@ -40,7 +45,6 @@ const ContractHistoryCard = (contract: Contract) => {
         <h4 className="text-sm font-semibold md:text-base dark:text-white">
           {contract.title}
         </h4>
-        {/* period */}
         <div className="flex gap-2">
           <Image src={"/calander.svg"} alt="icon" width={14} height={14} />
           <small className="text-gray-400">
@@ -49,8 +53,7 @@ const ContractHistoryCard = (contract: Contract) => {
         </div>
         <hr className="my-4 text-border-primary dark:border-gray-800" />
         <div className="flex justify-between">
-          <p className="dark:text-gray-400">Fixed rate</p>
-          {/* Status */}
+          <p className="dark:text-gray-400">{contract.contractType}</p>
           <div
             className={cn(
               "px-2 py-1 rounded-full text-xs border w-fit",
@@ -65,7 +68,7 @@ const ContractHistoryCard = (contract: Contract) => {
   );
 };
 
-function ContractHistory() {
+function ContractHistory({ contracts, loading = false }: ContractHistoryProps) {
   const [searchInput, setSearchInput] = useState("");
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filters, setFilters] = useState<FilterSelection>({
@@ -76,16 +79,13 @@ function ContractHistory() {
   const contractTypes = ["All", "Fixed rate", "Milestone", "Pay as you go"];
   const statusTypes = ["All", "Pending", "Rejected", "Active", "Completed"];
 
-  const filteredMockContracts = mockContracts.filter((c) => {
-    // Contract type filter
+  const filteredContracts = contracts.filter((c) => {
     const matchesContractType =
       filters.contractType === "All" || c.contractType === filters.contractType;
 
-    // Status filter
     const matchesStatus =
       filters.status === "All" || c.status === filters.status;
 
-    // Search filter (checks name, id, or anything else you want)
     const search = searchInput.toLowerCase().trim();
     const matchesSearch =
       search === "" ||
@@ -142,7 +142,7 @@ function ContractHistory() {
               onClick={() => setSearchInput(searchInput.trim())}
             />
           </div>
-          {filteredMockContracts.length > 4 && (
+          {filteredContracts.length > 4 && (
             <button
               onClick={() => setShowFilterModal(true)}
               className="flex items-center justify-center bg-white border border-[#DCE0E5]
@@ -154,7 +154,6 @@ function ContractHistory() {
         </div>
       </div>
       <div className="flex justify-end mb-4">
-        {/* shows the current filters set */}
         {filters.contractType !== filters.status && (
           <div className="flex items-center gap-3">
             {filters.contractType !== "All" && (
@@ -212,15 +211,16 @@ function ContractHistory() {
         />
       )}
 
-      {/* contract list */}
-      {filteredMockContracts.length > 0 ? (
+      {loading ? (
+        <div className="py-12 text-center text-gray-400">Loading contracts…</div>
+      ) : filteredContracts.length > 0 ? (
         <motion.section
           variants={containerVariants}
           initial="hidden"
           animate="visible"
           className="grid w-full grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
         >
-          {filteredMockContracts.map((item, index) => (
+          {filteredContracts.map((item, index) => (
             <motion.div variants={itemVariants} key={index}>
               <ContractHistoryCard {...item} />
             </motion.div>
