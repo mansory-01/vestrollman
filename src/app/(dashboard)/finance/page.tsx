@@ -2,7 +2,7 @@
 import { motion } from "framer-motion";
 
 import { useEffect, useMemo, useState } from "react";
-import { MOCK_ASSETS, generateMockTransactions  } from "@/lib/mock-data";
+import { MOCK_ASSETS } from "@/lib/mock-data";
 import { BalanceSection } from "@/components/features/finance/balance-section";
 import { AssetsGrid } from "@/components/features/finance/assets-grid";
 import { DepositModal } from "@/components/features/finance/DepositModal";
@@ -100,9 +100,22 @@ const normalizeTransaction = (
 });
 
 export default function FinancePage() {
+  // State for balance
+  const [ngnBalance, setNgnBalance] = useState<string>("₦0.00");
+
+  // State for transactions
+  const [transactions, setTransactions] = useState<DisplayTransaction[]>([]);
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
+  const [transactionsError, setTransactionsError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // State for UI
   const [search, setSearch] = useState("");
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [ngnBalance, setNgnBalance] = useState<string>("₦0.00");
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
 
   // Fetch organization fiat balance
   useEffect(() => {
@@ -116,23 +129,31 @@ export default function FinancePage() {
         }
       } catch (error) {
         console.error("Failed to fetch NGN balance:", error);
-        // Keep default 0
       }
     };
     fetchBalance();
   }, []);
+
+  // Fetch transactions
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const fetchTransactions = async () => {
+      setIsLoadingTransactions(true);
+      setTransactionsError(null);
 
       try {
         const params = new URLSearchParams({
           page: String(currentPage),
           limit: String(itemsPerPage),
         });
+
         const response = await fetch(
           `/api/v1/finance/transactions?${params.toString()}`,
-          { signal: controller.signal },
+          { signal: controller.signal }
         );
+
         const payload = (await response.json()) as TransactionsResponse;
-  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
 
         if (!response.ok || !payload.success || !payload.data) {
           throw new Error(payload.message || "Unable to load transactions");
@@ -150,9 +171,7 @@ export default function FinancePage() {
         setTotalItems(0);
         setTotalPages(1);
         setTransactionsError(
-          error instanceof Error
-            ? error.message
-            : "Unable to load transactions",
+          error instanceof Error ? error.message : "Unable to load transactions"
         );
       } finally {
         if (!controller.signal.aborted) {
@@ -351,7 +370,7 @@ export default function FinancePage() {
               selectedTab="Transactions"
               searchPlaceholder="Search transactions..."
               showSearch={false}
-              seeAllHref="/app/finance/transactions"
+              seeAllHref="/finance/transactions"
               selectedItems={selectedItems}
               onSelectItem={handleSelectItem}
               onSelectAll={handleSelectAll}

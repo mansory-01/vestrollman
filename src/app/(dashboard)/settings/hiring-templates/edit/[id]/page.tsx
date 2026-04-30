@@ -110,7 +110,7 @@ export default function EditTemplatePage() {
         }
       }, 100);
     } else {
-      router.push("/app/settings/hiring-templates");
+      router.push("/settings/hiring-templates");
     }
     setIsLoading(false);
   }, [templateId, router]);
@@ -178,7 +178,7 @@ export default function EditTemplatePage() {
       alert("Template updated successfully!");
 
       // Redirect back to templates list
-      router.push("/app/settings/");
+      router.push("/settings/");
     } catch (error) {
       console.error("Error updating template:", error);
       alert("Error updating template. Please try again.");
@@ -188,7 +188,7 @@ export default function EditTemplatePage() {
   };
 
   const handleBack = (): void => {
-    router.push("/app/settings");
+    router.push("/settings");
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,7 +225,7 @@ export default function EditTemplatePage() {
       alert("Template deleted successfully!");
 
       // Redirect back to templates list
-      router.push("/app/settings/hiring-templates");
+      router.push("/settings/hiring-templates");
     } catch (error) {
       console.error("Error deleting template:", error);
       alert("Error deleting template. Please try again.");

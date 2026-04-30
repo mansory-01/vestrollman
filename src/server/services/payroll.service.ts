@@ -1,5 +1,5 @@
 import { db, invoices } from "@/server/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { FiatDisbursementService } from "./fiat-disbursement.service";
 import { createFiatProvider, type FiatProviderPreference } from "./fiat";
 import { BadRequestError } from "@/server/utils/errors";
@@ -35,7 +35,7 @@ export class PayrollService {
       .where(
         and(
           eq(invoices.organizationId, organizationId),
-          sql`${invoices.id} IN (${sql.join(invoiceIds, sql`, `)})`,
+          inArray(invoices.id, invoiceIds),
           eq(invoices.status, "pending")
         )
       );

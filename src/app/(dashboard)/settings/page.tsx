@@ -94,7 +94,7 @@ function HeaderTab({
     <div className="px-4 pt-6 mb-3 bg-white lg:mb-6">
       <div>
         <Link
-          href="/app/settings"
+          href="/settings"
           className="flex items-center text-sm font-medium text-gray-600 hover:text-gray-900"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />

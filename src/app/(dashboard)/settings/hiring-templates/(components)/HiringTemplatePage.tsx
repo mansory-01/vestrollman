@@ -99,7 +99,7 @@ const HiringTemplatePage: React.FC = () => {
 
       alert("Template created successfully!");
 
-      router.push("/app/settings");
+      router.push("/settings");
     } catch (error) {
       console.error("Error submitting form:", error);
       alert("Error creating template. Please try again.");
