@@ -78,5 +78,22 @@ export const CreateDisbursementSchema = z.object({
     .describe("Supported disbursement currency."),
 });
 
+export const CreateDepositSchema = z.object({
+  amount: z.coerce
+    .number()
+    .positive()
+    .describe("Deposit amount in NGN."),
+  provider: z
+    .enum(["monnify", "flutterwave"])
+    .default("monnify")
+    .describe("Payment gateway provider to use."),
+  redirectUrl: z
+    .string()
+    .url()
+    .optional()
+    .describe("URL to redirect to after payment completion."),
+});
+
 export type ListTransactionsInput = z.infer<typeof ListTransactionsSchema>;
 export type CreateDisbursementInput = z.infer<typeof CreateDisbursementSchema>;
+export type CreateDepositInput = z.infer<typeof CreateDepositSchema>;

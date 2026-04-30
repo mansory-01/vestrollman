@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import Image from "next/image";
 import Link from "next/link";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
+import { OrganizationApi, type CompanyProfile } from "@/lib/api/organization";
 import {
   UsersIcon,
   GlobeAltIcon,
@@ -123,6 +124,15 @@ function HeaderTab({
 export default function Page() {
   const [activeTab, setActiveTab] = useState("Company");
   const tabs = ["Company", "Permissions", "Payment Methods", "Notifications"];
+
+  // ── Org profile ─────────────────────────────────────────────────────────────
+  const [profile, setProfile] = useState<CompanyProfile | null>(null);
+
+  useEffect(() => {
+    OrganizationApi.getProfile()
+      .then(setProfile)
+      .catch(() => {}); // silently fall back to placeholder UI
+  }, []);
 
   // ── Logo state ──────────────────────────────────────────────────────────────
   const [logoSrc, setLogoSrc] = useState("/touchpoint360.png");
@@ -316,7 +326,7 @@ export default function Page() {
 
                 <div>
                   <h2 className="text-3xl sm:text-3xl font-semibold text-[#111827] dark:text-white">
-                    Touchpoint 360
+                    {profile?.name ?? "—"}
                   </h2>
 
                   {uploadError && (
@@ -349,11 +359,10 @@ export default function Page() {
             <SectionCard
               title="Company information"
               action={
-                <button
+                <Link
+                  href="/settings/company/company-info"
                   className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium text-(--violet-base) border-(--violet-base) hover:bg-(--violet-hover) hover:text-white active:bg-(--violet-active) transition-colors"
-                  type="button"
                   aria-label="Edit company information"
-                  onClick={() => setIsLogoModalOpen(true)}
                 >
                   <Image
                     src="/edit.svg"
@@ -364,51 +373,27 @@ export default function Page() {
                     className="transition group-hover:invert group-hover:brightness-0 dark:invert"
                   />
                   Edit
-                </button>
+                </Link>
               }
             >
               <div className="space-y-3">
-                <FieldRow label="Company/Brand name" value="Touchpoint 360" />
-                <FieldRow label="Registered name" value="Touchpoint 360" />
+                <FieldRow label="Company/Brand name" value={profile?.name} />
+                <FieldRow label="Registered name" value={profile?.name} />
                 <FieldRow
                   label="Registration Number/EIN ID"
-                  value={<span className="text-[#9ca3af]">--</span>}
+                  value={profile?.registrationNumber ?? undefined}
                 />
                 <FieldRow
                   label="Country of incorporation"
                   value={
-                    <div className="flex items-center gap-2">
-                      <Image
-                        src="/nigeria.svg"
-                        width={20}
-                        height={14}
-                        alt="Nigeria flag"
-                      />
-                      <span>Nigeria</span>
-                    </div>
+                    profile?.registered.country ? (
+                      <span>{profile.registered.country}</span>
+                    ) : undefined
                   }
                 />
-                <FieldRow
-                  label="Size"
-                  value={<span className="text-[#9ca3af]">--</span>}
-                />
-                <FieldRow
-                  label="VAT number"
-                  value={<span className="text-[#9ca3af]">--</span>}
-                />
-                <FieldRow
-                  label="Company public website URL"
-                  value={
-                    <Link
-                      href="https://www.touchpoint360.com/"
-                      className="text-(--violet-base) hover:underline"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      https://www.touchpoint360.com/
-                    </Link>
-                  }
-                />
+                <FieldRow label="Size" value={undefined} />
+                <FieldRow label="VAT number" value={undefined} />
+                <FieldRow label="Company public website URL" value={undefined} />
               </div>
             </SectionCard>
           </motion.div>
@@ -420,47 +405,69 @@ export default function Page() {
                   <div className="text-sm text-[#6b7280] mb-2 dark:text-gray-400">
                     Billing address
                   </div>
-                  <div className="flex items-center gap-3 px-4 py-4 border border-gray-300 rounded-xl dark:border-gray-700 dark:bg-gray-800/50">
-                    <Image
-                      src="/warning.svg"
-                      width={20}
-                      height={20}
-                      alt="Warning"
-                    />
-                    <div className="text-sm dark:text-gray-300">
-                      Please{" "}
+                  {profile?.billing.street ? (
+                    <div className="flex items-center justify-between px-4 py-4 border border-gray-300 rounded-xl dark:border-gray-700 dark:bg-gray-800/50">
+                      <span className="text-sm dark:text-gray-300">
+                        {[profile.billing.street, profile.billing.city, profile.billing.state, profile.billing.country]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </span>
                       <Link
-                        className="underline decoration-(--violet-base) text-(--violet-base) hover:no-underline"
-                        href="#"
+                        href="/settings/company/addresses/billing-address"
+                        className="text-sm text-(--violet-base) hover:underline ml-4 shrink-0"
                       >
-                        add
-                      </Link>{" "}
-                      your company billing address
+                        Edit
+                      </Link>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-3 px-4 py-4 border border-gray-300 rounded-xl dark:border-gray-700 dark:bg-gray-800/50">
+                      <Image src="/warning.svg" width={20} height={20} alt="Warning" />
+                      <div className="text-sm dark:text-gray-300">
+                        Please{" "}
+                        <Link
+                          className="underline decoration-(--violet-base) text-(--violet-base) hover:no-underline"
+                          href="/settings/company/addresses/billing-address"
+                        >
+                          add
+                        </Link>{" "}
+                        your company billing address
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <div className="text-sm text-[#6b7280] mb-2 dark:text-gray-400">
                     Registered address
                   </div>
-                  <div className="flex items-center gap-3 px-4 py-4 border border-gray-300 rounded-xl dark:border-gray-700 dark:bg-gray-800/50">
-                    <Image
-                      src="/warning.svg"
-                      width={20}
-                      height={20}
-                      alt="Warning"
-                    />
-                    <div className="text-sm dark:text-gray-300">
-                      Please{" "}
+                  {profile?.registered.street ? (
+                    <div className="flex items-center justify-between px-4 py-4 border border-gray-300 rounded-xl dark:border-gray-700 dark:bg-gray-800/50">
+                      <span className="text-sm dark:text-gray-300">
+                        {[profile.registered.street, profile.registered.city, profile.registered.state, profile.registered.country]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </span>
                       <Link
-                        className="underline decoration-(--violet-base) text-(--violet-base) hover:no-underline"
-                        href="settings/registered-address"
+                        href="/settings/company/addresses/registered-address"
+                        className="text-sm text-(--violet-base) hover:underline ml-4 shrink-0"
                       >
-                        add
-                      </Link>{" "}
-                      your registered address
+                        Edit
+                      </Link>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-3 px-4 py-4 border border-gray-300 rounded-xl dark:border-gray-700 dark:bg-gray-800/50">
+                      <Image src="/warning.svg" width={20} height={20} alt="Warning" />
+                      <div className="text-sm dark:text-gray-300">
+                        Please{" "}
+                        <Link
+                          className="underline decoration-(--violet-base) text-(--violet-base) hover:no-underline"
+                          href="/settings/company/addresses/registered-address"
+                        >
+                          add
+                        </Link>{" "}
+                        your registered address
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </SectionCard>

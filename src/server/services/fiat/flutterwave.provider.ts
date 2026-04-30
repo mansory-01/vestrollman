@@ -12,6 +12,8 @@ import type {
   VerifyTransactionResult,
   VirtualAccountRequest,
   VirtualAccountResult,
+  InitializePaymentParams,
+  InitializePaymentResult,
 } from "./payment-provider.interface";
 
 export interface FlutterwaveConfig {
@@ -47,6 +49,15 @@ interface FlutterwaveVerifiedTransactionData {
   currency?: string;
   created_at?: string;
   [key: string]: unknown;
+}
+
+interface FlutterwaveInitializePaymentData {
+  link?: string;
+  checkout_url?: string;
+  authorization_url?: string;
+  tx_ref?: string;
+  amount?: number;
+  currency?: string;
 }
 
 async function safeJson<T>(res: Response): Promise<T> {
@@ -197,6 +208,55 @@ export class FlutterwaveProvider implements PaymentProvider {
       currency: (data.data.currency ?? "NGN") as "NGN",
       paidAt: data.data.created_at,
       raw: data.data,
+    };
+  }
+
+  async initializePayment(
+    params: InitializePaymentParams,
+  ): Promise<InitializePaymentResult> {
+    const response = await fetch(
+      `${this.config.baseUrl}/v3/charges?type=card`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.config.secretKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tx_ref: params.reference,
+          amount: params.amount,
+          currency: params.currency,
+          email: params.customerEmail,
+          name: params.customerName,
+          redirect_url: params.redirectUrl,
+          payment_options: "card,account_transfer",
+          customer: {
+            email: params.customerEmail,
+            name: params.customerName,
+          },
+        }),
+      },
+    );
+
+    const data =
+      await safeJson<FlutterwaveApiResponse<FlutterwaveInitializePaymentData>>(response);
+
+    if (!response.ok || data.status !== "success") {
+      Logger.error("Flutterwave payment initialization failed", {
+        reference: params.reference,
+        message: data.message,
+      });
+      throw FlutterwaveProvider.mapError(response.status, data.message);
+    }
+
+    return {
+      reference: data.data.tx_ref ?? params.reference,
+      paymentUrl: data.data.link,
+      checkoutUrl: data.data.checkout_url,
+      authorizationUrl: data.data.authorization_url,
+      status: "initialized",
+      amount: data.data.amount ?? params.amount,
+      currency: (data.data.currency ?? params.currency) as "NGN",
     };
   }
 

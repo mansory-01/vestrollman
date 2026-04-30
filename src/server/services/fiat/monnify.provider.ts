@@ -12,6 +12,8 @@ import type {
   VerifyTransactionResult,
   VirtualAccountRequest,
   VirtualAccountResult,
+  InitializePaymentParams,
+  InitializePaymentResult,
 } from "./payment-provider.interface";
 
 export interface MonnifyConfig {
@@ -71,6 +73,18 @@ interface MonnifyVerifyTransactionResponse {
   };
 }
 
+interface MonnifyInitializePaymentResponse {
+  requestSuccessful: boolean;
+  responseMessage?: string;
+  responseBody: {
+    checkoutUrl?: string;
+    paymentReference?: string;
+    transactionReference?: string;
+    amount?: number;
+    currencyCode?: string;
+  };
+}
+
 const MONNIFY_STATUS_MAP: Record<string, DisburseResult["status"]> = {
   SUCCESS: "completed",
   PENDING: "pending",
@@ -92,9 +106,9 @@ export class MonnifyProvider implements PaymentProvider {
       return this.accessToken;
     }
 
-    const credentials = Buffer.from(
+    const credentials = btoa(
       `${this.config.apiKey}:${this.config.secretKey}`
-    ).toString("base64");
+    );
 
     const response = await fetch(
       `${this.config.baseUrl}/api/v1/auth/login`,
@@ -257,6 +271,53 @@ export class MonnifyProvider implements PaymentProvider {
       currency: body.currencyCode ?? "NGN",
       paidAt: body.paidOn ?? body.completedOn,
       raw: body,
+    };
+  }
+
+  async initializePayment(
+    params: InitializePaymentParams
+  ): Promise<InitializePaymentResult> {
+    const token = await this.authenticate();
+
+    const response = await fetch(
+      `${this.config.baseUrl}/api/v1/merchant/transactions/init-transaction`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: params.amount,
+          customerEmail: params.customerEmail,
+          customerName: params.customerName,
+          paymentReference: params.reference,
+          paymentDescription: "Wallet funding",
+          currencyCode: params.currency,
+          contractCode: this.config.contractCode,
+          redirectUrl: params.redirectUrl,
+          paymentMethods: ["CARD", "ACCOUNT_TRANSFER"],
+        }),
+      }
+    );
+
+    const data: MonnifyInitializePaymentResponse = await response.json();
+
+    if (!response.ok || !data.requestSuccessful) {
+      Logger.error("Monnify payment initialization failed", {
+        reference: params.reference,
+        responseMessage: data.responseMessage,
+      });
+      throw MonnifyProvider.mapError(response.status, data.responseMessage);
+    }
+
+    const body = data.responseBody;
+    return {
+      reference: body.paymentReference ?? params.reference,
+      checkoutUrl: body.checkoutUrl,
+      status: "initialized",
+      amount: body.amount ?? params.amount,
+      currency: (body.currencyCode ?? params.currency) as "NGN",
     };
   }
 

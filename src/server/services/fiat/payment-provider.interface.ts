@@ -62,6 +62,25 @@ export interface VerifyTransactionResult {
   raw?: unknown;
 }
 
+export interface InitializePaymentParams {
+  amount: number;
+  reference: string;
+  customerEmail: string;
+  customerName: string;
+  currency: FiatCurrency;
+  redirectUrl?: string;
+}
+
+export interface InitializePaymentResult {
+  reference: string;
+  paymentUrl?: string;
+  checkoutUrl?: string;
+  authorizationUrl?: string;
+  status: "pending" | "initialized";
+  amount: number;
+  currency: FiatCurrency;
+}
+
 /**
  * Unified provider contract used by the fiat service layer to avoid gateway lock-in.
  */
@@ -80,6 +99,11 @@ export interface PaymentProvider {
    * Verify the latest state of a provider transaction by reference.
    */
   verifyTransaction(reference: string): Promise<VerifyTransactionResult>;
+
+  /**
+   * Initialize a payment transaction via payment gateway widget/redirect.
+   */
+  initializePayment(params: InitializePaymentParams): Promise<InitializePaymentResult>;
 }
 
 export type DisburseRequest = DisburseParams;

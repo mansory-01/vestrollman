@@ -1,6 +1,6 @@
 # VestRoll: Payroll
 
-VestRoll is a payroll and invoicing platform built for the 2026 financial ecosystem. Built with **Next.js 15**, **React 19**, and the **Stellar Soroban** stack, it offers a "No-Crypto" UX where privacy, speed, and biometric security are standard.
+Stablecoin and fiat Payroll and invoicing platform on Stellar
 
 ---
 

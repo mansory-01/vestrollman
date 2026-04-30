@@ -5,6 +5,7 @@ import { useState } from "react";
 import { MOCK_ASSETS, generateMockTransactions } from "@/lib/mock-data";
 import { BalanceSection } from "@/components/features/finance/balance-section";
 import { AssetsGrid } from "@/components/features/finance/assets-grid";
+import { DepositModal } from "@/components/features/finance/DepositModal";
 import Table from "@/components/shared/table/Table";
 import { TableColumn } from "@/components/shared/table/TableHeader";
 import { Transaction } from "@/types/finance.types";
@@ -24,6 +25,7 @@ const transactionColumns: TableColumn[] = [
 export default function FinancePage() {
   const [search, setSearch] = useState("");
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
 
   const filteredTransactions = mockTransactions.filter((tx) =>
     [tx.id, tx.description, tx.amount, tx.status]
@@ -152,6 +154,12 @@ export default function FinancePage() {
                 Finance
               </h1>
             </div>
+            <button
+              onClick={() => setIsDepositModalOpen(true)}
+              className="px-4 py-2 bg-[#1C6B4A] text-white rounded-full text-sm font-medium hover:bg-[#145a3d] transition-colors"
+            >
+              Deposit Funds
+            </button>
           </header>
         </motion.div>
 
@@ -202,6 +210,11 @@ export default function FinancePage() {
             />
           </div>
         </motion.div>
+
+        <DepositModal
+          open={isDepositModalOpen}
+          onOpenChange={setIsDepositModalOpen}
+        />
       </div>
     </div>
   );

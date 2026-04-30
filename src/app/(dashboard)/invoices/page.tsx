@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Table from "@/components/shared/table/Table";
 import { TableColumn } from "@/components/shared/table/TableHeader";
@@ -10,11 +10,20 @@ import { RoutePaths } from "@/routes/routesPath";
 import { UsdtIcon } from "@/../public/svg";
 import TitleHeader from "@/components/features/dashboard/TitleHeader";
 
-import { mockInvoices, Invoice } from "@/lib/data/invoices";
+import { Invoice } from "@/lib/data/invoices";
+import { FinanceService } from "@/lib/api/finance";
 
 const Invoices: React.FC = () => {
-  const [invoices] = useState<Invoice[]>(mockInvoices);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState<string>("");
+
+  useEffect(() => {
+    FinanceService.getInvoices()
+      .then(setInvoices)
+      .catch(() => setInvoices([]))
+      .finally(() => setLoading(false));
+  }, []);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const router = useRouter();
 
@@ -177,8 +186,7 @@ const Invoices: React.FC = () => {
           animate="visible"
           className="flex flex-col flex-1 w-full h-full px-4 py-4 "
         >
-          {/* metrics cards ... keep your existing block */}
-          {invoices.length > 0 && (
+          {!loading && invoices.length > 0 && (
             <div className="gap-4 w-full flex overflow-x-auto mb-4 sm:grid sm:grid-cols-4 sm:overflow-x-visible">
               {invoiceMetricsData.map((metric) => (
                 <motion.div

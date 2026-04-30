@@ -18,7 +18,7 @@ export const KYB_REJECTION_CODES = {
 
 export type KybRejectionCode = (typeof KYB_REJECTION_CODES)[keyof typeof KYB_REJECTION_CODES];
 
-export type KybStatus = "not_started" | "pending" | "verified" | "rejected";
+export type KybStatus = "not_started" | "pending" | "verified" | "approved" | "rejected";
 
 export interface KybVerificationStatus {
   status: KybStatus;
