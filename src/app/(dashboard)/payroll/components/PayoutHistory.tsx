@@ -1,18 +1,12 @@
-
 'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Filter, Search } from "lucide-react";
 import Table from '@/components/shared/table/Table';
 import { TableColumn } from '@/components/shared/table/TableHeader';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { UsdtIcon } from '@/../public/svg';
-import { RoutePaths } from '@/routes/routesPath';
 import { formatCurrency } from '@/utils/formatters';
-
-import Table from "@/components/shared/table/Table";
-import { TableColumn } from "@/components/shared/table/TableHeader";
-import { useEffect, useState } from "react";
-import { UsdtIcon } from "@/../public/svg";
-import { Filter, Search } from "lucide-react";
 
 type ContractType = "Fixed rate" | "Pay as you go" | "Milestone";
 
@@ -123,21 +117,6 @@ const columns: TableColumn[] = [
   { key: "paidIn", header: "Paid in", align: "center" },
   { key: "timestamp", header: "Timestamp", align: "right" },
 ];
-function formatAmount(amount: number, currency: string): string {
-  return formatCurrency(amount, { currency, isKobo: false });
-}
-
-function formatRate(title: string, currency: string): string {
-  if (title.includes('[CUR]')) {
-    return title.replace('[CUR]', getCurrencyPrefix(currency));
-  }
-
-  if (!title.startsWith('$')) {
-    return title;
-  }
-
-  return `${getCurrencyPrefix(currency)}${title.slice(1)}`;
-}
 
 const SkeletonRow = () => (
   <div className="flex items-center px-4 py-4 border-b border-gray-100 animate-pulse">
@@ -227,7 +206,6 @@ const PayoutHistory = () => {
 
   const renderMobileCell = (item: PayrollRecord) => (
     <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 space-y-2">
-      {/* Row 1: name + badge */}
       <div className="flex items-center justify-between gap-2">
         <p className="font-bold text-[#111827] text-base">
           {item.employeeName}
@@ -238,7 +216,6 @@ const PayoutHistory = () => {
           {item.contractType}
         </span>
       </div>
-      {/* Row 2: amount | token | timestamp */}
       <div className="flex items-center gap-2 text-sm text-[#6B7280]">
         <span className="font-semibold text-[#111827]">
           ${item.amount.toLocaleString()}.00
@@ -266,7 +243,6 @@ const PayoutHistory = () => {
 
   return (
     <div className="w-full bg-white rounded-xl shadow-sm border border-[#E5E7EB]">
-      {/* Section header */}
       <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[#E5E7EB]">
         <h2 className="text-base font-semibold text-[#111827]">History</h2>
         <div className="flex items-center gap-2">
@@ -286,7 +262,6 @@ const PayoutHistory = () => {
         </div>
       </div>
 
-      {/* Loading skeleton */}
       {loading ? (
         <div>
           {Array.from({ length: 8 }).map((_, i) => (
