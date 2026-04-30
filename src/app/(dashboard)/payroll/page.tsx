@@ -1,27 +1,145 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Filter, ChevronDown, ShareIcon } from "lucide-react";
+import { Filter, ChevronDown, ShareIcon, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import Image from "next/image";
 import searchIcon from "@/../public/images/search-payroll.png";
+import { FinanceService, PayrollItem } from "@/lib/api/finance";
+import { RequestError } from "@/lib/api-client";
+import useModal from "@/hooks/useModal";
 
 import PayoutHistory from "@/app/(dashboard)/payroll/components/PayoutHistory";
 
+type ModalState =
+  | { type: "none" }
+  | { type: "confirm"; selected: PayrollItem[] }
+  | { type: "loading" }
+  | { type: "success"; succeeded: number; failed: number; total: number }
+  | { type: "error"; message: string };
+
+const currencySymbols: Record<string, string> = {
+  NGN: "₦",
+  USD: "$",
+  USDT: "USDT",
+  fiat: "₦",
+  crypto: "",
+};
+
+function formatAmount(amount: number, currency: string): string {
+  const sym = currencySymbols[currency] ?? "$";
+  return `${sym}${amount.toLocaleString()}`;
+}
+
+function getInitials(first: string, last: string): string {
+  return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase();
+}
+
 export default function PayrollPage() {
   const [activeTab, setActiveTab] = useState("Overview");
+  const [search, setSearch] = useState("");
+  const [payrollItems, setPayrollItems] = useState<PayrollItem[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [modal, setModal] = useState<ModalState>({ type: "none" });
+
+  const fetchPayroll = useCallback(async () => {
+    setIsLoading(true);
+    setFetchError(null);
+    try {
+      const data = await FinanceService.getPendingPayroll();
+      setPayrollItems(data);
+    } catch (err) {
+      if (err instanceof RequestError) {
+        setFetchError(err.details.detail || err.message);
+      } else {
+        setFetchError("Failed to load payroll data");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPayroll();
+  }, [fetchPayroll]);
+
+  const filtered = payrollItems.filter((item) => {
+    const q = search.toLowerCase();
+    const name = `${item.employee.firstName} ${item.employee.lastName}`.toLowerCase();
+    return (
+      name.includes(q) ||
+      item.employee.email.toLowerCase().includes(q) ||
+      item.employee.role.toLowerCase().includes(q) ||
+      item.invoiceNo.toLowerCase().includes(q)
+    );
+  });
+
+  const allSelected = filtered.length > 0 && filtered.every((i) => selectedIds.has(i.id));
+
+  function toggleAll() {
+    if (allSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        filtered.forEach((i) => next.delete(i.id));
+        return next;
+      });
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        filtered.forEach((i) => next.add(i.id));
+        return next;
+      });
+    }
+  }
+
+  function toggleItem(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  const selectedItems = payrollItems.filter((i) => selectedIds.has(i.id));
+  const totalAmount = selectedItems.reduce((sum, i) => sum + i.amount, 0);
+
+  function openConfirm() {
+    if (selectedItems.length === 0) return;
+    setModal({ type: "confirm", selected: selectedItems });
+  }
+
+  async function executePayroll() {
+    setModal({ type: "loading" });
+    try {
+      const result = await FinanceService.submitPayroll({
+        invoiceIds: selectedItems.map((i) => i.id),
+      });
+      setSelectedIds(new Set());
+      await fetchPayroll();
+      setModal({ type: "success", ...result });
+    } catch (err) {
+      let msg = "Payroll submission failed. Please try again.";
+      if (err instanceof RequestError) {
+        msg = err.details.detail || err.message;
+      }
+      setModal({ type: "error", message: msg });
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#F5F6F7] font-sans dark:bg-gray-950">
-      {/* Header Section */}
+      {/* Header */}
       <div className="bg-white border-b border-[#DCE0E5] px-4 sm:px-6 py-4 sm:py-6 dark:bg-gray-900 dark:border-gray-800">
         <div className="max-w-9xl mx-auto">
-          {/* Top section with title and export button */}
           <div className="flex sm:flex-row sm:items-center sm:justify-between gap-x-36 mb-6">
             <div>
-              <p className="text-sm text-[#6B7280] mb-1 dark:text-gray-400">
-                Overview
-              </p>
+              <p className="text-sm text-[#6B7280] mb-1 dark:text-gray-400">Overview</p>
               <h1 className="text-2xl sm:text-3xl font-bold text-[#111827] dark:text-white">
                 Payroll
               </h1>
@@ -33,28 +151,20 @@ export default function PayrollPage() {
             </button>
           </div>
 
-          {/* Navigation Tabs */}
           <div className="flex border-b border-[#E5E7EB] dark:border-gray-800">
-            <button
-              onClick={() => setActiveTab("Overview")}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors duration-200 ${
-                activeTab === "Overview"
-                  ? "border-[#5E2A8C] text-[#5E2A8C]"
-                  : "border-transparent text-[#6B7280] hover:text-[#374151] dark:text-gray-400 dark:hover:text-gray-200"
-              }`}
-            >
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab("Payout history")}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors duration-200 ${
-                activeTab === "Payout history"
-                  ? "border-[#5E2A8C] text-[#5E2A8C]"
-                  : "border-transparent text-[#6B7280] hover:text-[#374151] dark:text-gray-400 dark:hover:text-gray-200"
-              }`}
-            >
-              Payout history
-            </button>
+            {["Overview", "Payout history"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                  activeTab === tab
+                    ? "border-[#5E2A8C] text-[#5E2A8C]"
+                    : "border-transparent text-[#6B7280] hover:text-[#374151] dark:text-gray-400 dark:hover:text-gray-200"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -70,9 +180,9 @@ export default function PayrollPage() {
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.3 }}
             >
-              {/* image Banner */}
+              {/* Banner */}
               <div
-                className={`bg-linear-to-r from-[#5E2A8C] to-[#A855F7] rounded-2xl p-6 sm:p-8 mb-5 text-white relative overflow-hidden`}
+                className="bg-linear-to-r from-[#5E2A8C] to-[#A855F7] rounded-2xl p-6 sm:p-8 mb-5 text-white relative overflow-hidden"
                 style={{
                   backgroundImage: "url(/images/payout-group.png)",
                   backgroundSize: "cover",
@@ -83,136 +193,32 @@ export default function PayrollPage() {
                   Set up payroll for your employees
                 </h2>
                 <p className="text-purple-100 mb-6 text-sm sm:text-base">
-                  Let&apos;s make things easier! Automate payroll disbursement
-                  for your employees.
+                  Let&apos;s make things easier! Automate payroll disbursement for your employees.
                 </p>
                 <button className="inline-flex items-center justify-center px-6 py-3 bg-white text-[#5E2A8C] font-medium rounded-full hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-purple-600 transition-colors duration-200">
                   New contract
                 </button>
               </div>
 
-              {/* Payout Schedule Section */}
+              {/* Payout Schedule */}
               <div className="mb-2">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-                  <h2 className="hidden md:flex lg:flex text-xl font-semibold text-[#111827] dark:text-white">
+                  <h2 className="hidden md:flex text-xl font-semibold text-[#111827] dark:text-white">
                     Payout Schedule
                   </h2>
-                  <h2 className="flex md:hidden lg:hidden text-xl font-semibold text-[#111827] dark:text-white">
+                  <h2 className="flex md:hidden text-xl font-semibold text-[#111827] dark:text-white">
                     Payroll
                   </h2>
 
-                  {/* Search Bar and Filter */}
                   <div className="flex justify-between gap-2">
                     <div className="relative">
                       <input
                         type="search"
                         placeholder="Search by name..."
-                        className="w-full sm:w-80 pl-4 pr-24 py-2.5 bg-white border border-[#DCE0E5] rounded-lg text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#5E2A8C] focus:border-[#5E2A8C] transition-colors duration-200 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:placeholder-gray-500"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full sm:w-80 pl-4 pr-10 py-2.5 bg-white border border-[#DCE0E5] rounded-lg text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#5E2A8C] focus:border-[#5E2A8C] transition-colors duration-200 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:placeholder-gray-500"
                       />
-                      <svg
-                        className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9CA3AF]"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        {/* Document/Paper */}
-                        <rect
-                          x="4"
-                          y="3"
-                          width="12"
-                          height="16"
-                          rx="1"
-                          fill="#F3F4F6"
-                          stroke="#E5E7EB"
-                          strokeWidth="1"
-                        />
-                        <rect
-                          x="5"
-                          y="2"
-                          width="12"
-                          height="16"
-                          rx="1"
-                          fill="#F9FAFB"
-                          stroke="#E5E7EB"
-                          strokeWidth="1"
-                        />
-                        <rect
-                          x="6"
-                          y="1"
-                          width="12"
-                          height="16"
-                          rx="1"
-                          fill="white"
-                          stroke="#E5E7EB"
-                          strokeWidth="1"
-                        />
-
-                        {/* Document lines */}
-                        <line
-                          x1="8"
-                          y1="5"
-                          x2="14"
-                          y2="5"
-                          stroke="#E5E7EB"
-                          strokeWidth="0.5"
-                        />
-                        <line
-                          x1="8"
-                          y1="7"
-                          x2="15"
-                          y2="7"
-                          stroke="#E5E7EB"
-                          strokeWidth="0.5"
-                        />
-                        <line
-                          x1="8"
-                          y1="9"
-                          x2="13"
-                          y2="9"
-                          stroke="#E5E7EB"
-                          strokeWidth="0.5"
-                        />
-                        <line
-                          x1="8"
-                          y1="11"
-                          x2="14"
-                          y2="11"
-                          stroke="#E5E7EB"
-                          strokeWidth="0.5"
-                        />
-
-                        {/* Magnifying glass */}
-                        <circle
-                          cx="14"
-                          cy="14"
-                          r="3.5"
-                          fill="none"
-                          stroke="#8B5CF6"
-                          strokeWidth="1.5"
-                        />
-                        <circle cx="14" cy="14" r="2.5" fill="#F3F4F6" />
-                        <line
-                          x1="16.5"
-                          y1="16.5"
-                          x2="19"
-                          y2="19"
-                          stroke="#8B5CF6"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                        />
-
-                        {/* Dollar sign in magnifying glass */}
-                        <text
-                          x="14"
-                          y="16"
-                          textAnchor="middle"
-                          fill="#8B5CF6"
-                          fontSize="3"
-                          fontWeight="bold"
-                        >
-                          $
-                        </text>
-                      </svg>
                     </div>
                     <button className="flex items-center justify-center px-3 py-2.5 bg-white border border-[#DCE0E5] rounded-lg text-[#6B7280] hover:bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-[#5E2A8C] transition-colors duration-200 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">
                       <Filter className="h-4 w-4" />
@@ -221,27 +227,176 @@ export default function PayrollPage() {
                 </div>
               </div>
 
-              {/* Empty State */}
+              {/* Payroll Table */}
               <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm dark:bg-gray-900 dark:border-gray-800">
-                <div className="flex flex-col items-center justify-center py-16 sm:py-20 px-4 text-center">
-                  {/* Empty State Illustration */}
-                  <div className="mb-8">
-                    <Image
-                      className="h-14 w-14"
-                      width={100}
-                      src={searchIcon}
-                      alt="Payout Group"
-                    />
+                {isLoading ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-[#5E2A8C] mb-3" />
+                    <p className="text-sm text-[#6B7280] dark:text-gray-400">Loading payroll data...</p>
                   </div>
+                ) : fetchError ? (
+                  <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                    <XCircle className="h-10 w-10 text-red-400 mb-3" />
+                    <p className="text-sm text-red-500">{fetchError}</p>
+                    <button
+                      onClick={fetchPayroll}
+                      className="mt-4 px-4 py-2 bg-[#5E2A8C] text-white text-sm font-medium rounded-full hover:bg-[#7C3AED] transition-colors"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 sm:py-20 px-4 text-center">
+                    <div className="mb-8">
+                      <Image className="h-14 w-14" width={100} src={searchIcon} alt="No payroll" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-[#111827] mb-3 dark:text-white">
+                      {search ? "No employees match your search." : "You haven't set up any payrolls."}
+                    </h3>
+                    <p className="text-[#9CA3AF] max-w-sm text-sm dark:text-gray-400">
+                      {search ? "Try a different search term." : "Employees you put on payroll will be displayed here"}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Run Payroll bar */}
+                    {selectedIds.size > 0 && (
+                      <div className="flex items-center justify-between px-6 py-3 bg-[#F5F0FF] border-b border-[#E5E7EB] dark:bg-purple-950 dark:border-gray-700">
+                        <span className="text-sm font-medium text-[#5E2A8C] dark:text-purple-300">
+                          {selectedIds.size} employee{selectedIds.size > 1 ? "s" : ""} selected
+                          &nbsp;·&nbsp;
+                          Total: {formatAmount(totalAmount, "NGN")}
+                        </span>
+                        <button
+                          onClick={openConfirm}
+                          className="px-4 py-2 bg-[#5E2A8C] text-white text-sm font-medium rounded-full hover:bg-[#7C3AED] transition-colors"
+                        >
+                          Run Payroll
+                        </button>
+                      </div>
+                    )}
 
-                  {/* Empty State Message */}
-                  <h3 className="text-xl font-semibold text-[#111827] mb-3 dark:text-white">
-                    You haven&apos;t set up any payrolls.
-                  </h3>
-                  <p className="text-[#9CA3AF] max-w-sm text-sm dark:text-gray-400">
-                    Employees you put on payroll will be displayed here
-                  </p>
-                </div>
+                    {/* Table header */}
+                    <div className="hidden md:grid grid-cols-[40px_1fr_1fr_140px_120px_100px] gap-4 px-6 py-3 border-b border-[#E5E7EB] dark:border-gray-700 bg-[#F9FAFB] dark:bg-gray-800">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={toggleAll}
+                          className="w-4 h-4 rounded border-gray-300 text-[#5E2A8C] focus:ring-[#5E2A8C]"
+                        />
+                      </div>
+                      <span className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Employee</span>
+                      <span className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Role</span>
+                      <span className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Invoice</span>
+                      <span className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider text-right">Amount</span>
+                      <span className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider text-right">Currency</span>
+                    </div>
+
+                    {/* Rows */}
+                    <div className="divide-y divide-[#E5E7EB] dark:divide-gray-700">
+                      {filtered.map((item) => (
+                        <div
+                          key={item.id}
+                          onClick={() => toggleItem(item.id)}
+                          className={`grid md:grid-cols-[40px_1fr_1fr_140px_120px_100px] gap-4 px-6 py-4 cursor-pointer transition-colors ${
+                            selectedIds.has(item.id)
+                              ? "bg-[#F5F0FF] dark:bg-purple-950/30"
+                              : "hover:bg-[#F9FAFB] dark:hover:bg-gray-800/50"
+                          }`}
+                        >
+                          {/* Checkbox */}
+                          <div className="hidden md:flex items-center" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(item.id)}
+                              onChange={() => toggleItem(item.id)}
+                              className="w-4 h-4 rounded border-gray-300 text-[#5E2A8C] focus:ring-[#5E2A8C]"
+                            />
+                          </div>
+
+                          {/* Employee */}
+                          <div className="flex items-center gap-3 col-span-2 md:col-span-1">
+                            <div className="md:hidden flex items-center mr-1" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={selectedIds.has(item.id)}
+                                onChange={() => toggleItem(item.id)}
+                                className="w-4 h-4 rounded border-gray-300 text-[#5E2A8C] focus:ring-[#5E2A8C]"
+                              />
+                            </div>
+                            {item.employee.avatarUrl ? (
+                              <Image
+                                src={item.employee.avatarUrl}
+                                alt={item.employee.firstName}
+                                width={36}
+                                height={36}
+                                className="rounded-full object-cover w-9 h-9 shrink-0"
+                              />
+                            ) : (
+                              <div className="w-9 h-9 rounded-full bg-[#5E2A8C] flex items-center justify-center text-white text-xs font-semibold shrink-0">
+                                {getInitials(item.employee.firstName, item.employee.lastName)}
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-[#111827] dark:text-white truncate">
+                                {item.employee.firstName} {item.employee.lastName}
+                              </p>
+                              <p className="text-xs text-[#6B7280] dark:text-gray-400 truncate">
+                                {item.employee.email}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Role */}
+                          <div className="hidden md:flex items-center">
+                            <span className="text-sm text-[#374151] dark:text-gray-300">
+                              {item.employee.role}
+                            </span>
+                          </div>
+
+                          {/* Invoice */}
+                          <div className="hidden md:flex items-center">
+                            <span className="text-sm text-[#6B7280] dark:text-gray-400">
+                              #{item.invoiceNo}
+                            </span>
+                          </div>
+
+                          {/* Amount */}
+                          <div className="flex md:justify-end items-center">
+                            <span className="text-sm font-semibold text-[#111827] dark:text-white">
+                              {formatAmount(item.amount, item.paidIn)}
+                            </span>
+                          </div>
+
+                          {/* Currency */}
+                          <div className="hidden md:flex justify-end items-center">
+                            <span className="text-xs font-medium px-2 py-1 rounded-full border border-[#DCE0E5] bg-[#F9FAFB] text-[#374151] dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300">
+                              {item.paidIn}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Footer: select all + run payroll */}
+                    <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E7EB] dark:border-gray-700">
+                      <button
+                        onClick={toggleAll}
+                        className="text-sm text-[#5E2A8C] hover:underline"
+                      >
+                        {allSelected ? "Deselect all" : "Select all"}
+                      </button>
+                      <button
+                        disabled={selectedIds.size === 0}
+                        onClick={openConfirm}
+                        className="px-6 py-2 bg-[#5E2A8C] text-white text-sm font-medium rounded-full hover:bg-[#7C3AED] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Run Payroll {selectedIds.size > 0 ? `(${selectedIds.size})` : ""}
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </motion.div>
           )}
@@ -259,6 +414,135 @@ export default function PayrollPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Modals */}
+      <AnimatePresence>
+        {modal.type !== "none" && (
+          <motion.div
+            key="modal-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+            onClick={() => {
+              if (modal.type !== "loading") setModal({ type: "none" });
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6"
+            >
+              {modal.type === "confirm" && (
+                <>
+                  <h3 className="text-lg font-semibold text-[#111827] dark:text-white mb-1">
+                    Confirm Payroll Run
+                  </h3>
+                  <p className="text-sm text-[#6B7280] dark:text-gray-400 mb-4">
+                    You are about to process payroll for {modal.selected.length} employee
+                    {modal.selected.length > 1 ? "s" : ""}.
+                  </p>
+
+                  <div className="space-y-2 max-h-48 overflow-y-auto mb-4">
+                    {modal.selected.map((item) => (
+                      <div key={item.id} className="flex justify-between items-center py-2 border-b border-[#E5E7EB] dark:border-gray-700 last:border-0">
+                        <span className="text-sm text-[#374151] dark:text-gray-300">
+                          {item.employee.firstName} {item.employee.lastName}
+                        </span>
+                        <span className="text-sm font-semibold text-[#111827] dark:text-white">
+                          {formatAmount(item.amount, item.paidIn)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-between items-center py-2 mb-6 border-t-2 border-[#5E2A8C]">
+                    <span className="text-sm font-semibold text-[#111827] dark:text-white">Total</span>
+                    <span className="text-base font-bold text-[#5E2A8C]">
+                      {formatAmount(modal.selected.reduce((s, i) => s + i.amount, 0), "NGN")}
+                    </span>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setModal({ type: "none" })}
+                      className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-[#374151] dark:text-gray-200 text-sm font-medium rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={executePayroll}
+                      className="flex-1 px-4 py-2.5 bg-[#5E2A8C] text-white text-sm font-medium rounded-full hover:bg-[#7C3AED] transition-colors"
+                    >
+                      Confirm & Pay
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {modal.type === "loading" && (
+                <div className="flex flex-col items-center py-8">
+                  <Loader2 className="h-10 w-10 animate-spin text-[#5E2A8C] mb-4" />
+                  <p className="text-base font-semibold text-[#111827] dark:text-white mb-1">
+                    Processing Payroll
+                  </p>
+                  <p className="text-sm text-[#6B7280] dark:text-gray-400">
+                    Please wait while we process the payments...
+                  </p>
+                </div>
+              )}
+
+              {modal.type === "success" && (
+                <div className="flex flex-col items-center text-center py-4">
+                  <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
+                  <h3 className="text-lg font-semibold text-[#111827] dark:text-white mb-2">
+                    Payroll Processed
+                  </h3>
+                  <p className="text-sm text-[#6B7280] dark:text-gray-400 mb-4">
+                    {modal.succeeded} of {modal.total} payment{modal.total > 1 ? "s" : ""} processed successfully.
+                    {modal.failed > 0 && ` ${modal.failed} failed.`}
+                  </p>
+                  <button
+                    onClick={() => setModal({ type: "none" })}
+                    className="px-8 py-2.5 bg-[#5E2A8C] text-white text-sm font-medium rounded-full hover:bg-[#7C3AED] transition-colors"
+                  >
+                    Done
+                  </button>
+                </div>
+              )}
+
+              {modal.type === "error" && (
+                <div className="flex flex-col items-center text-center py-4">
+                  <XCircle className="h-12 w-12 text-red-400 mb-4" />
+                  <h3 className="text-lg font-semibold text-[#111827] dark:text-white mb-2">
+                    Payroll Failed
+                  </h3>
+                  <p className="text-sm text-[#6B7280] dark:text-gray-400 mb-4">
+                    {modal.message}
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setModal({ type: "none" })}
+                      className="px-6 py-2.5 bg-gray-100 dark:bg-gray-700 text-[#374151] dark:text-gray-200 text-sm font-medium rounded-full hover:bg-gray-200 transition-colors"
+                    >
+                      Close
+                    </button>
+                    <button
+                      onClick={() => setModal({ type: "confirm", selected: selectedItems })}
+                      className="px-6 py-2.5 bg-[#5E2A8C] text-white text-sm font-medium rounded-full hover:bg-[#7C3AED] transition-colors"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
