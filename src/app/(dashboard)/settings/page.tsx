@@ -171,27 +171,15 @@ export default function Page() {
     setLogoSrc(localUrl);
     setIsLogoModalOpen(false);
 
-    // Read Bearer token from localStorage (set by the auth layer on login)
-    const accessToken =
-      typeof window !== "undefined"
-        ? window.localStorage.getItem("access_token")
-        : null;
-    const authHeaders: HeadersInit = accessToken
-      ? { Authorization: `Bearer ${accessToken}` }
-      : {};
-
     setIsUploadingLogo(true);
     try {
-      // Step 1 — get presigned S3 upload URL
-      const urlRes = await fetch(
-        `/api/v1/organizations/logo-upload-url?filename=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`,
-        { headers: authHeaders },
+      // Step 1 — get presigned S3 upload URL via the service
+      const { signedUrl, key } = await OrganizationApi.getLogoUploadUrl(
+        file.name,
+        file.type
       );
-      if (!urlRes.ok) throw new Error("Failed to get upload URL");
-      const { data: urlData } = await urlRes.json();
-      const { signedUrl, key } = urlData;
 
-      // Step 2 — upload blob directly to S3
+      // Step 2 — upload blob directly to S3 (external URL, raw fetch is intentional)
       const s3Res = await fetch(signedUrl, {
         method: "PUT",
         headers: { "Content-Type": file.type },
@@ -199,32 +187,12 @@ export default function Page() {
       });
       if (!s3Res.ok) throw new Error("Failed to upload logo to storage");
 
-      // Step 3 — save the S3 key to the database
-      const patchRes = await fetch("/api/v1/organizations/logo", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", ...authHeaders },
-        body: JSON.stringify({ key }),
-      });
+      // Step 3 — save the S3 key to the database via the service
+      const { logoUrl } = await OrganizationApi.updateLogo(key);
 
-      if (!patchRes.ok) {
-        // Parse server error message and surface it to the user
-        let errorMessage = "Failed to save logo";
-        try {
-          const errorBody = await patchRes.json();
-          if (typeof errorBody?.message === "string") errorMessage = errorBody.message;
-          else if (typeof errorBody?.error === "string") errorMessage = errorBody.error;
-        } catch {
-          // ignore JSON parse error, fall back to generic message
-        }
-        throw new Error(errorMessage);
-      }
-
-      const { data: patchData } = await patchRes.json();
       // Replace optimistic blob URL with the permanent CDN URL
-      if (patchData?.logoUrl) {
-        revokeBlobUrl(); // revoke the blob now that we have the real URL
-        setLogoSrc(patchData.logoUrl);
-      }
+      revokeBlobUrl();
+      setLogoSrc(logoUrl);
     } catch (err) {
       console.error("[Logo upload error]", err);
       setUploadError(

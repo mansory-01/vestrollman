@@ -17,26 +17,7 @@ import {
   AlertTriangle,
   CheckCircle
 } from "lucide-react";
-
-interface AccountDetails {
-  id: string;
-  bankName: string;
-  accountNumber: string;
-  routingNumber?: string;
-  sortCode?: string;
-  iban?: string;
-  swiftCode?: string;
-  accountType: string;
-  accountHolderName: string;
-  isAccountVerified: boolean;
-  accountVerifiedAt?: string;
-  bankAddress?: string;
-  bankCity?: string;
-  bankCountry?: string;
-  employeeId: string;
-  employeeName: string;
-}
-
+import { EmployeesService, type AccountDetails } from "@/lib/api/employees";
 interface AccountManagementProps {
   employeeId: string;
   employeeName: string;
@@ -53,28 +34,16 @@ export function AccountManagement({ employeeId, employeeName }: AccountManagemen
   const fetchAccounts = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      const response = await fetch(`/api/v1/accounts?employeeId=${employeeId}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to fetch accounts");
-      }
-      
-      const data = await response.json();
-      
-      if (data.data) {
-        // Add employee info to each account
-        const accountsWithEmployee = data.data.map((account: any) => ({
-          ...account,
-          employeeId,
-          employeeName,
-        }));
-        setAccounts(accountsWithEmployee);
-      } else {
-        setAccounts([]);
-      }
+      const data = await EmployeesService.getAccounts(employeeId);
+      // Attach employee info that isn't returned by the API
+      const accountsWithEmployee = data.map((account) => ({
+        ...account,
+        employeeId,
+        employeeName,
+      }));
+      setAccounts(accountsWithEmployee);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load accounts");
     } finally {
@@ -84,21 +53,9 @@ export function AccountManagement({ employeeId, employeeName }: AccountManagemen
 
   const handleCreateAccount = async (data: any) => {
     setError(null);
-    
+
     try {
-      const response = await fetch("/api/v1/accounts", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create account");
-      }
-      
+      await EmployeesService.upsertAccount(data);
       await fetchAccounts();
       setShowForm(false);
     } catch (err) {
@@ -109,21 +66,9 @@ export function AccountManagement({ employeeId, employeeName }: AccountManagemen
 
   const handleUpdateAccount = async (data: any) => {
     setError(null);
-    
+
     try {
-      const response = await fetch("/api/v1/accounts", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update account");
-      }
-      
+      await EmployeesService.upsertAccount(data);
       await fetchAccounts();
       setEditingAccount(null);
       setShowForm(false);
@@ -135,28 +80,16 @@ export function AccountManagement({ employeeId, employeeName }: AccountManagemen
 
   const handleVerifyAccount = async (accountId: string) => {
     setError(null);
-    
+
     try {
       const account = accounts.find(a => a.id === accountId);
       if (!account) throw new Error("Account not found");
 
-      const response = await fetch("/api/v1/accounts/verify", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          employeeId,
-          accountNumber: account.accountNumber,
-          bankName: account.bankName,
-        }),
+      await EmployeesService.verifyAccount({
+        employeeId,
+        accountNumber: account.accountNumber,
+        bankName: account.bankName,
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to verify account");
-      }
-      
       await fetchAccounts();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to verify account");
@@ -178,17 +111,9 @@ export function AccountManagement({ employeeId, employeeName }: AccountManagemen
     }
 
     setError(null);
-    
+
     try {
-      const response = await fetch(`/api/v1/accounts/${accountId}`, {
-        method: "DELETE",
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to delete account");
-      }
-      
+      await EmployeesService.deleteAccount(accountId);
       await fetchAccounts();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete account");

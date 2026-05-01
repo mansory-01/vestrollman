@@ -22,6 +22,7 @@ import {
   ContactRound,
 } from "lucide-react";
 import { BankDetailsData } from "../types";
+import { EmployeesService } from "@/lib/api/employees";
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
@@ -111,18 +112,14 @@ export function Step3PaymentDetails({ defaultValues, onNext, onBack }: Props) {
     setVerification({ status: "loading" });
 
     try {
-      const res = await fetch("/api/v1/accounts/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bankName: selectedBank, accountNumber }),
+      const result = await EmployeesService.validateAccount({
+        bankName: selectedBank,
+        accountNumber,
       });
-      const json = await res.json();
-
-      if (!res.ok) throw new Error(json.message || "Verification failed");
 
       const resolvedName: string =
-        json.data?.accountHolderName ||
-        json.data?.accountName ||
+        result.accountHolderName ||
+        result.accountName ||
         "Account Verified";
 
       setValue("accountName", resolvedName);

@@ -6,39 +6,24 @@ import { AccountManagement } from "@/components/features/employee-management/Acc
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-interface Employee {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: string;
-  department?: string;
-}
+import { EmployeesService, type EmployeeDetail } from "@/lib/api/employees";
 
 export default function EmployeeAccountsPage() {
   const params = useParams();
   const router = useRouter();
   const employeeId = params.id as string;
   
-  const [employee, setEmployee] = useState<Employee | null>(null);
+  const [employee, setEmployee] = useState<EmployeeDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchEmployee = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      const response = await fetch(`/api/employees/${employeeId}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to fetch employee");
-      }
-      
-      const data = await response.json();
-      setEmployee(data.data);
+      const data = await EmployeesService.getEmployee(employeeId);
+      setEmployee(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load employee");
     } finally {

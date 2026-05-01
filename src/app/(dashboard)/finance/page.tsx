@@ -11,6 +11,7 @@ import { TableColumn } from "@/components/shared/table/TableHeader";
 import type { Transaction } from "@/types/finance.types";
 import { UsdtIcon } from "@/../public/svg";
 import { formatNairaFromKobo } from "@/lib/format-naira";
+import { FinanceService } from "@/lib/api/finance";
 
 const transactionColumns: TableColumn[] = [
   { key: "id", header: "Transaction ID" },
@@ -121,12 +122,8 @@ export default function FinancePage() {
   useEffect(() => {
     const fetchBalance = async () => {
       try {
-        const res = await fetch("/api/v1/finance/balance");
-        if (res.ok) {
-          const json = await res.json();
-          const kobo = json.data?.balance ?? json.balance ?? 0;
-          setNgnBalance(formatNairaFromKobo(kobo));
-        }
+        const { balance } = await FinanceService.getBalance();
+        setNgnBalance(formatNairaFromKobo(balance ?? 0));
       } catch (error) {
         console.error("Failed to fetch NGN balance:", error);
       }
@@ -143,25 +140,11 @@ export default function FinancePage() {
       setTransactionsError(null);
 
       try {
-        const params = new URLSearchParams({
-          page: String(currentPage),
-          limit: String(itemsPerPage),
-        });
+        const payload = await FinanceService.getTransactions(currentPage, itemsPerPage);
 
-        const response = await fetch(
-          `/api/v1/finance/transactions?${params.toString()}`,
-          { signal: controller.signal }
-        );
-
-        const payload = (await response.json()) as TransactionsResponse;
-
-        if (!response.ok || !payload.success || !payload.data) {
-          throw new Error(payload.message || "Unable to load transactions");
-        }
-
-        setTransactions(payload.data.data.map(normalizeTransaction));
-        setTotalItems(payload.data.meta.total);
-        setTotalPages(Math.max(payload.data.meta.totalPages, 1));
+        setTransactions(payload.data.map(normalizeTransaction as any));
+        setTotalItems(payload.meta.total);
+        setTotalPages(Math.max(payload.meta.totalPages, 1));
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
           return;

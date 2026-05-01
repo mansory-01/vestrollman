@@ -16,6 +16,7 @@ import {
 import { TimeOffFormData, Employee } from "@/types/teamManagement.types";
 import { SelectEmployeeModal } from "./SelectEmployeeModal";
 import { useToast } from "@/hooks/useToast";
+import { TeamService } from "@/lib/api/team";
 
 const EmployeeSelector = ({
   selectedEmployee,
@@ -372,46 +373,16 @@ export const CreateTimeOffForm = ({ employees }: { employees: Employee[] }) => {
     setSubmitMessage("");
 
     try {
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("access_token")
-          : null;
-
       // Map the UI's timeOffType to the API's leaveType enum
-      // Paid → vacation, Unpaid → other
       const leaveType = formData.timeOffType === "paid" ? "vacation" : "other";
 
-      const payload: Record<string, unknown> = {
+      await TeamService.submitTimeOff({
         startDate: formData.startDate,
         endDate: formData.endDate,
         leaveType,
         reason: formData.reason,
-      };
-
-      // If an employee was explicitly selected (admin submitting on behalf)
-      if (formData.employee?.id) {
-        payload.employeeId = formData.employee.id;
-      }
-
-      const res = await fetch("/api/v1/team/time-off", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(payload),
+        ...(formData.employee?.id ? { employeeId: String(formData.employee.id) } : {}),
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        const msg =
-          data?.message ||
-          (Array.isArray(data?.errors)
-            ? data.errors.map((e: { message: string }) => e.message).join(", ")
-            : "Failed to submit request. Please try again.");
-        throw new Error(msg);
-      }
 
       setSubmitStatus("success");
       setSubmitMessage("Your time-off request has been submitted and is pending approval.");

@@ -2,6 +2,7 @@
 
 import React from "react";
 import EmailVerification from "@/components/shared/emailVerificationModal";
+import { AuthService } from "@/lib/api/auth";
 
 interface Step3Props {
   email: string;
@@ -16,18 +17,7 @@ export default function Step3VerifyEmail({
 }: Step3Props) {
   const handleVerify = async (otp: string) => {
     try {
-      const response = await fetch("/api/v1/auth/verify-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        return false;
-      }
-
+      await AuthService.verifyEmail({ email, otp });
       onNext();
       return true;
     } catch (error) {

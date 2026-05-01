@@ -10,14 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-
-type WalletFundingDetails = {
-  walletId: string | null;
-  organizationId: string | null;
-  virtualAccountNumber: string | null;
-  virtualBankName: string | null;
-  hasVirtualAccount: boolean;
-};
+import { FinanceService, type WalletFundingDetails } from "@/lib/api/finance";
 
 type AddFundsModalProps = {
   open: boolean;
@@ -54,22 +47,8 @@ export function AddFundsModal({ open, onOpenChange }: AddFundsModalProps) {
     setError(null);
 
     try {
-      const response = await fetch("/api/v1/finance/wallet", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      const payload = await response.json();
-
-      if (!response.ok || !payload.success) {
-        throw new Error(
-          payload.message || "Unable to load your funding account details.",
-        );
-      }
-
-      setWallet(payload.data);
+      const data = await FinanceService.getWallet();
+      setWallet(data);
     } catch (fetchError) {
       setError(
         fetchError instanceof Error
@@ -86,22 +65,8 @@ export function AddFundsModal({ open, onOpenChange }: AddFundsModalProps) {
     setError(null);
 
     try {
-      const response = await fetch("/api/v1/finance/wallet", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      const payload = await response.json();
-
-      if (!response.ok || !payload.success) {
-        throw new Error(
-          payload.message || "Unable to refresh your virtual account.",
-        );
-      }
-
-      setWallet(payload.data);
+      const data = await FinanceService.refreshWallet();
+      setWallet(data);
     } catch (refreshError) {
       setError(
         refreshError instanceof Error

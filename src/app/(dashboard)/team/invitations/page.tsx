@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { InvitationManagement } from "@/components/features/team-management/invitations/InvitationManagement";
-import { createInvitationSchema } from "@/server/validations/invitation.schema";
+import { TeamService } from "@/lib/api/team";
 
 interface Invitation {
   id: string;
@@ -26,11 +26,6 @@ interface Invitation {
   };
 }
 
-interface InvitationsResponse {
-  invitations: Invitation[];
-  total: number;
-}
-
 export default function InvitationsPage() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,15 +36,8 @@ export default function InvitationsPage() {
     setError(null);
 
     try {
-      const response = await fetch("/api/v1/invitations");
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to fetch invitations");
-      }
-
-      const data: InvitationsResponse = await response.json();
-      setInvitations(data.invitations);
+      const data = await TeamService.listInvitations() as any;
+      setInvitations(data?.invitations ?? data ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load invitations");
     } finally {
@@ -61,20 +49,7 @@ export default function InvitationsPage() {
     setError(null);
 
     try {
-      const response = await fetch("/api/v1/invitations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create invitation");
-      }
-
-      // Refresh invitations list
+      await TeamService.createInvitation(data);
       await fetchInvitations();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create invitation");
@@ -86,20 +61,7 @@ export default function InvitationsPage() {
     setError(null);
 
     try {
-      const response = await fetch("/api/v1/invitations/resend", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ invitationId }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to resend invitation");
-      }
-
-      // Refresh invitations list
+      await TeamService.resendInvitation({ invitationId } as any);
       await fetchInvitations();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to resend invitation");
@@ -111,20 +73,7 @@ export default function InvitationsPage() {
     setError(null);
 
     try {
-      const response = await fetch("/api/v1/invitations/delete", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ invitationId }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to delete invitation");
-      }
-
-      // Refresh invitations list
+      await TeamService.deleteInvitation(invitationId);
       await fetchInvitations();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete invitation");
@@ -150,4 +99,3 @@ export default function InvitationsPage() {
     </div>
   );
 }
-

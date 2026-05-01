@@ -65,6 +65,10 @@ export class AuthService {
   static async logout() {
     return apiClient.post("/api/v1/auth/logout", {});
   }
+
+  static async verifyEmail(data: { email: string; otp: string }) {
+    return apiClient.post("/api/v1/auth/verify-email", data);
+  }
 }
 
 

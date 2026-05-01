@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/ui/toast";
 import { useRouter } from "next/navigation";
 import ModalWelcomeOnboard from "@/components/shared/modal-welcome-onboard";
+import { AuthService } from "@/lib/api/auth";
 
 export type RegistrationFormData = {
   firstName: string;
@@ -60,23 +61,16 @@ export default function RegistrationWizard() {
   const handleStep4Submit = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/v1/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+      await AuthService.register({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        businessEmail: formData.businessEmail,
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        showError(result.message || "Registration failed");
-        return;
-      }
 
       // Success - Registration initiated, OTP sent
       nextStep();
     } catch (err) {
-      showError("An unexpected error occurred");
+      showError(err instanceof Error ? err.message : "Registration failed");
     } finally {
       setIsLoading(false);
     }

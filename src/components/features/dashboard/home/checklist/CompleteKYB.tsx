@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import InputField from "@/components/ui/input-field";
 import Dropdown from "@/components/ui/dropdown";
 import FileUpload from "@/components/ui/file-upload";
+import { KybService } from "@/lib/api/kyb";
 
 interface KybFormData {
   businessRegistrationType: string;
@@ -48,20 +49,13 @@ export default function CompleteKYBPage() {
 
   const uploadFile = async (file: File, field: keyof KybFormData) => {
     try {
-      const response = await fetch("/api/v1/kyb/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type,
-        }),
-      });
+      // Step 1 — get presigned S3 upload URL via the service
+      const { signedUrl, key } = await KybService.getUploadUrl(
+        file.name,
+        file.type
+      );
 
-      const { data, success, message } = await response.json();
-      if (!success) throw new Error(message);
-
-      const { signedUrl, key } = data;
-
+      // Step 2 — upload the raw file directly to S3 (external URL, raw fetch is correct here)
       const uploadRes = await fetch(signedUrl, {
         method: "PUT",
         body: file,
@@ -83,28 +77,19 @@ export default function CompleteKYBPage() {
     setError(null);
 
     try {
-      const response = await fetch("/api/v1/kyb/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          registrationType: formData.businessRegistrationType,
-          registrationNo: formData.businessRegistrationNo,
-          incorporationCertificatePath: formData.incorporationCertificatePath,
-          memorandumArticlePath: formData.memorandumArticlePath,
-          formC02C07Path: formData.formC02C07Path || undefined,
-        }),
+      await KybService.submit({
+        registrationType: formData.businessRegistrationType,
+        registrationNo: formData.businessRegistrationNo,
+        incorporationCertificatePath: formData.incorporationCertificatePath,
+        memorandumArticlePath: formData.memorandumArticlePath,
+        formC02C07Path: formData.formC02C07Path || undefined,
       });
 
-      const result = await response.json();
-
-      if (!result.success) {
-        setError(result.message);
-        return;
-      }
-
       // TODO: Handle success (show confirmation, update checklist state)
-    } catch {
-      setError("An unexpected error occurred. Please try again.");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }

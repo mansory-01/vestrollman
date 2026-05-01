@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, CheckCircle, XCircle, Mail, Building, User, Lock } from "lucide-react";
+import { TeamService } from "@/lib/api/team";
 
 const acceptInvitationFormSchema = z.object({
   token: z.string().min(1, "Token is required"),
@@ -93,15 +94,8 @@ function AcceptInvitationPageContent() {
 
   const fetchInvitationDetails = async (invitationToken: string) => {
     try {
-      const response = await fetch(`/api/v1/invitations/validate?token=${invitationToken}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Invalid invitation");
-      }
-
-      const data = await response.json();
-      setInvitationDetails(data.invitation);
+      const data = await TeamService.validateInvitation(invitationToken) as any;
+      setInvitationDetails(data?.invitation ?? data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load invitation details");
     } finally {
@@ -114,23 +108,12 @@ function AcceptInvitationPageContent() {
     setError(null);
 
     try {
-      const response = await fetch("/api/v1/invitations/accept", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          token: data.token,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          password: data.password,
-        }),
+      await TeamService.acceptInvitation({
+        token: data.token,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        password: data.password,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to accept invitation");
-      }
 
       setSuccess(true);
       setTimeout(() => {
@@ -148,19 +131,7 @@ function AcceptInvitationPageContent() {
 
     setIsLoading(true);
     try {
-      const response = await fetch("/api/v1/invitations/decline", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ token }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to decline invitation");
-      }
-
+      await TeamService.declineInvitation(token);
       router.push("/login?message=invitation-declined");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to decline invitation");

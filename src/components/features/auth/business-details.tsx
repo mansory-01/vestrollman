@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import ModalWelcomeOnboard from "@/components/shared/modal-welcome-onboard";
 import Stepper from "@/components/features/auth/Stepper";
 import { AuthService } from "@/lib/api/auth";
+import { KybService } from "@/lib/api/kyb";
 import FileUpload from "@/components/ui/file-upload";
 
 interface FormData {
@@ -233,22 +234,13 @@ const BusinessRegistrationForm: React.FC = () => {
 
   const uploadFile = async (file: File, field: keyof FormData) => {
     try {
-      // 1. Get signed URL
-      const response = await fetch("/api/v1/kyb/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type,
-        }),
-      });
+      // Step 1 — get presigned S3 upload URL via the service
+      const { signedUrl, key } = await KybService.getUploadUrl(
+        file.name,
+        file.type
+      );
 
-      const { data, success, message } = await response.json();
-      if (!success) throw new Error(message);
-
-      const { signedUrl, key } = data;
-
-      // 2. Upload to S3
+      // Step 2 — upload the raw file directly to S3 (external URL, raw fetch is correct here)
       const uploadRes = await fetch(signedUrl, {
         method: "PUT",
         body: file,
@@ -257,7 +249,7 @@ const BusinessRegistrationForm: React.FC = () => {
 
       if (!uploadRes.ok) throw new Error("Failed to upload to S3");
 
-      // 3. Update state
+      // Step 3 — update state
       setFormData((prev) => ({ ...prev, [field]: key }));
       if (errors[field]) {
         setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -297,17 +289,13 @@ const BusinessRegistrationForm: React.FC = () => {
       // Submit complete registration data using AuthService
       await AuthService.completeRegistration(completeData);
 
-      // Submit KYB data
-      await fetch("/api/v1/kyb/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          registrationType: formData.registrationType,
-          registrationNo: formData.registrationNo,
-          incorporationCertificatePath: formData.incorporationCertificatePath,
-          memorandumArticlePath: formData.memorandumArticlePath,
-          formC02C07Path: formData.formC02C07Path || undefined,
-        }),
+      // Submit KYB data via KybService
+      await KybService.submit({
+        registrationType: formData.registrationType,
+        registrationNo: formData.registrationNo,
+        incorporationCertificatePath: formData.incorporationCertificatePath,
+        memorandumArticlePath: formData.memorandumArticlePath,
+        formC02C07Path: formData.formC02C07Path || undefined,
       });
 
       console.log("Registration completed successfully:", completeData);
