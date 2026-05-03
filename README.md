@@ -16,15 +16,15 @@
 
 **VestRoll** is a professional payroll and invoicing system built on the Stellar network. It enables businesses, contractors, and individuals to manage global payments with automated tax handling using both fiat and stablecoins.
 
-## 🚀 Features
+## Features
 
-- 💰 **Hybrid Payments**: Full support for fiat and stablecoins (USDC) for global settlement.
-- ⚡ **Payroll Management**: Automated disbursement of payments to large teams in seconds.
-- 🤝 **Invoice as a Service**: Specialized infrastructure for generating and tracking invoices on Stellar.
-- 💸 **Tax Handling**: Integrated tax calculations and reporting for every transaction.
-- 🔐 **Multi-Account Support**: Tailored experiences for Business, Contractor, and Individual accounts.
+- **Hybrid Payments**: Full support for fiat and stablecoins (USDC) for global settlement.
+- **Payroll Management**: Automated disbursement of payments to large teams in seconds.
+- **Invoice as a Service**: Specialized infrastructure for generating and tracking invoices on Stellar.
+- **Tax Handling**: Integrated tax calculations and reporting for every transaction.
+- **Multi-Account Support**: Tailored experiences for Business, Contractor, and Individual accounts.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Framework**: [Next.js 15](https://nextjs.org/) (Frontend & API)
 - **Runtime**: Node.js 20 LTS
@@ -32,7 +32,7 @@
 - **Blockchain**: Stellar Network (SEP-24, Passkey Kit)
 - **State Management**: Redux Toolkit & Zustand
 
-## 🏁 Quick Start
+## Quick Start
 
 1. **Clone and Prepare**:
 
@@ -59,7 +59,7 @@
    pnpm dev
    ```
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 vestroll/
@@ -75,21 +75,21 @@ vestroll/
 └── scripts/                # Utility scripts for DB and Swagger
 ```
 
-## 📚 Documentation
+## Documentation
 
 Comprehensive documentation is available in the [`/docs`](./docs/) folder:
 
 ### Quick Start
 
-- 📖 **[Main Documentation](./docs/README.md)** - Complete documentation index
+- **[Main Documentation](./docs/README.md)** - Complete documentation index
 
 ### Core Documentation
 
-- 📐 [Architecture Overview](./docs/architecture/overview.md) - System architecture
-- 📋 [Project Overview](./docs/context/project-overview.md) - Vision and goals
-- 👥 [User Personas](./docs/context/user-personas.md) - Account types and use cases
+- [Architecture Overview](./docs/architecture/overview.md) - System architecture
+- [Project Overview](./docs/context/project-overview.md) - Vision and goals
+- [User Personas](./docs/context/user-personas.md) - Account types and use cases
 
-## 🎯 Use Cases
+## Use Cases
 
 ### Business Payroll
 
@@ -114,15 +114,15 @@ Simple and secure personal payment management:
 1. Manage personal balances in fiat or stablecoins.
 2. Secure onboarding with biometric Passkeys.
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
 
-## 📝 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
-## 🆘 Support
+## Support
 
 - **Documentation**: [/docs](./docs/)
 - **Issues**: [GitHub Issues](https://github.com/SafeVault/vestroll/issues)
@@ -150,7 +150,7 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 ---
 
 <p align="center">
-  <i>🚀 Empowering global payroll with Stellar 🚀</i>
+  <i> Empowering global payroll with Stellar </i>
 </p>
 
 ---
